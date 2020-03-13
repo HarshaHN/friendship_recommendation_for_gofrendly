@@ -1,0 +1,39 @@
+Meeting 04 - 13.00-14.30 on Mar 6, 2020 and MoM as follows:
+a. Specs and Schedule is approved.
+b. Discussion on thesis problem and how to go ahead.
+c. Tips such as use sub-data to test the code in the development, ensure blocked users were taken care.
+d. Evaluation metric would be to hide the links and allow the algorithm to predict.
+
+Plan ahead:
+a. Find solid research answer for semantic analysis and graph neural networks.
+b. Consider pretrained networks and employ transfer learning wherever necessary.
+z. Collect Firebase (Chat data). Write script and extract chat connection info.
+
+Read specifically more on GNN(Deep NN: Graph Convolutional Networks(GCNs), GraphSAGE, Gated Graph Neural Networks, Subgraph Embeddings) and SNAP materials.
+Lemmatize, but stemmatize ^recall ~^precision, remove stopwords, 
+b. Read more on SNAP and CS224w, anndn, nlp, ir, networkX.
+c. More papers in Conferences and begin with EUIR.
+d. Decide on evaluation metric and A metric must be chosen to optimise for training the neural network.
+f. Prestudy report, Main report!
+
+10th Mar
+9th Mar
+Read 'Heterogeneous edge embeddings for Friend Recommendation' in detail, GCN, GraphSAGE, looked into the abstract of 'Evaluating Connection Quality between Two Individuals in Social Networks', 
+
+6 March
+Meeting with Gustav. Brainstorming on the problem. Decided to go ahead with semantic similarity and graph neural networks.
+
+5rd March
+a. Read more on SNAP and CS224w, anndn, nlp, ir, networkX, graph-tool, igraph.
+b. Script SQL query to extract all relevant user data from sql database. Organize them into pandas dataframe. Replace links and ids with corresponding data. Then preprocess them such as lemmatize, remove stop words. I was considering to perform POS tagging and keep only nouns and verbs of the user. 
+
+c. Then using NetworkX or SNAP software library create nodes for each user. Then, using connection details. create network graph. Not decided on directed or undirected graph.
+
+c. (2nd Mar) Read the paper 'Heterogeneous Edge Embedding for Friend Recommendation. I decided to go with heterogeneous network with users node and activity node involved. Not sure to have one-link or multi-link connection between nodes. And also, read about information retrieval basics. 
+
+d.  (3rd Mar) Python code to get into SQL data. Perform SQL query. DBeaver is the chosen SQL visualizer. We have 113K user nodes with over 1 million friendship links. SQL data handling is new to me.
+
+Links:
+http://snap.stanford.edu/proj/embeddings-www/files/
+https://web.stanford.edu/class/cs224w/
+------------------------------------------------------------------------------------------f
