@@ -1,20 +1,16 @@
-Meeting 04 - 13.00-14.30 on Mar 6, 2020 and MoM as follows:
-a. Specs and Schedule is approved.
-b. Discussion on thesis problem and how to go ahead.
-c. Tips such as use sub-data to test the code in the development, ensure blocked users were taken care.
-d. Evaluation metric would be to hide the links and allow the algorithm to predict.
+a. Time evolution of the network links to be considered for evaluation (similar to Verma et al.) i.e., prediction of future friends based on past friends.
+b. Validation dataset to be considered for hybrid weights.
 
 Plan ahead:
-a. Find solid research answer for semantic analysis and graph neural networks.
-b. Consider pretrained networks and employ transfer learning wherever necessary.
-z. Collect Firebase (Chat data). Write script and extract chat connection info.
+a. Go ahead and implement semantic similarity.
+b. Decide on Graph based approach.
+c. Implementing the evaluation metrics.
+d. Prestudy report.
 
-Read specifically more on GNN(Deep NN: Graph Convolutional Networks(GCNs), GraphSAGE, Gated Graph Neural Networks, Subgraph Embeddings) and SNAP materials.
-Lemmatize, but stemmatize ^recall ~^precision, remove stopwords, 
-b. Read more on SNAP and CS224w, anndn, nlp, ir, networkX.
-c. More papers in Conferences and begin with EUIR.
-d. Decide on evaluation metric and A metric must be chosen to optimise for training the neural network.
-f. Prestudy report, Main report!
+16th Mar
+
+15th Mar
+70% RW-GCN paper was read. Development environ such as IDE, Conda, version control were setup.
 
 10th Mar
 9th Mar

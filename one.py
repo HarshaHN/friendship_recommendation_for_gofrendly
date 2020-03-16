@@ -11,6 +11,7 @@ import os
 import numpy as np
 import pandas as pd
 import networkx as nx
+import time
 
 # SQL
 import pymysql
@@ -49,40 +50,92 @@ fLinks = pd.read_sql_query(query[1], db)
 aLinks = pd.read_sql_query(query[3], db)
 aNodes = pd.read_sql_query(query[2], db)
 #cLinks = pd.read_sql_query(query[4], db)
+db.close() # disconnect from server 
+
+# %% 
+# Save the files
+def saveone(): #save the dfs
+    os.chdir('./data/in')
+    global uNodes, fLinks, aNodes, aLinks
+    uNodes.to_hdf("uNodes.h5", key='uNodes')
+    fLinks.to_hdf("fLinks.h5", key='fLinks')
+    aNodes.to_hdf("aNodes.h5", key='aNodes')
+    aLinks.to_hdf("aLinks.h5", key='aLinks')
+    #cLinks.to_hdf("cLinks.h5", key='cLinks')
+    os.chdir('../..')
+
+def loadone(): #load the dfs
+    os.chdir('./data/in')
+    global uNodes, fLinks, aNodes, aLinks
+    uNodes = pd.read_hdf("uNodes.h5", key='uNodes')
+    #fLinks = pd.read_hdf("fLinks.h5", key='fLinks')
+    #aNodes = pd.read_hdf("aNodes.h5", key='aNodes')
+    #aLinks = pd.read_hdf("aLinks.h5", key='aLinks')
+    #cLinks = pd.read_hdf("cLinks", key='cLinks')
+    os.chdir('../..')
+
+# %%
+"""Data processing"""
+loadone() #load the dfs
+
+#a. {German, Swedish, Norwegian} lang detection and translation to english
+from googletrans import Translator
+translator = Translator()
+
+stories = pd.concat([uNodes['user_id'], uNodes['myStory']], axis=1)
+
+
+# %%
+sub_stories = stories[:10]
+start_time = time.time()
+langlist =[]; langdict = {}; itr = -1
+for index, row in sub_stories.iterrows():
+    text = row['myStory']
+    if (text != None) and (text != ''):
+        #langlist.append(translator.detect(row).lang)
+        try: 
+            langdict[index] = translator.translate(row, dest = 'en').text
+        except: print( index, '\t', text , '\n', '###'); break;
+    else: langdict[index] = None
+
+sub_stories['myStory_en'] = langdict
+
+print("--- %s seconds ---" % (time.time() - start_time))
+#from matplotlib import pyplot as plt
+#plt.hist(langlist)
+
+#%%
+#from googletrans import Translator
+#translator = Translator()
+start_time = time.time()
+for i in range(1,20):
+    translator.translate('안녕하세요')
+print("--- %s seconds ---" % (time.time() - start_time))
+
+#%%
+for row in temp:
+pre-processing?
+
+result = translator.translate(:, dest='en')
+if result.src != en:
+    then pandas(userid, result.text)
+
+#a. textual data: myStory. BERT embeddings. Tokenize sentences, average BERT embeddings.
 
 #lemmatize
 #Swedish and English
-#uNodes: mystory, describeyourself, iamcustom, meetforcustom #iAm, meetFor
-#aNodes: title, description FROM activities
 
 #remove stop words
-
 
 #POS tagging and keep nouns and verbs or not?
 
 #Extract chat connections from Firebase
+
 # (userid, chatfriend) = cLinks
-
-uNodes.to_hdf("uNodes.h5", key='uNodes')
-fLinks.to_hdf("fLinks.h5", key='fLinks')
-aNodes.to_hdf("aNodes.h5", key='aNodes')
-aLinks.to_hdf("aLinks.h5", key='aLinks')
-#cLinks.to_hdf("cLinks.h5", key='cLinks')
-
-os.chdir('../..')
-db.close() # disconnect from server 
-
 
 # %%
 """Data Analysis"""
-os.chdir('./data/in')
-uNodes = pd.read_hdf("uNodes.h5", key='uNodes')
-fLinks = pd.read_hdf("fLinks.h5", key='fLinks')
-aNodes = pd.read_hdf("aNodes.h5", key='aNodes')
-aLinks = pd.read_hdf("aLinks.h5", key='aLinks')
-#cLinks = pd.read_hdf("cLinks", key='cLinks')
-os.chdir('../..')
-
+loadone() #load the dfs
 #Build the Heterogenous Social Network Graph
 #G = nx.Graph()
 
