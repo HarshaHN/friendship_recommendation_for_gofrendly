@@ -38,3 +38,5 @@ quit
 mysql -u gofrendly -p gofrendly < data/gofrendly.sql
 exit
 
+%BERT
+bert-serving-start -model_dir /data/cased_L-12_H-768_A-12/ -num_worker=1

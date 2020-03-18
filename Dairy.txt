@@ -7,7 +7,14 @@ b. Decide on Graph based approach.
 c. Implementing the evaluation metrics.
 d. Prestudy report.
 
+18th Mar
+
+
+17th Mar
+ Trying to implement bert-as-a-service, a pretrained module to get the sentence embeddings. Read about it, however, replication had dependency error. However, the paper 'Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (EMNLP 2019)' has better results with trained modules. So, importing and interfaced with my code and is able to generate sentence embedding.
+
 16th Mar
+Read the GCN 70%. Implemented the googletrans function to translate to english. Trying to implement bert-as-a-service.
 
 15th Mar
 70% RW-GCN paper was read. Development environ such as IDE, Conda, version control were setup.
