@@ -13,162 +13,99 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 import time
-
+import func.op as op
+import func.sql as opsql
     # ML libraries
 
-# %% Clear all variables
-def clearvars():
-    import sys
-    sys.modules[__name__].__dict__.clear()
+#%%
+"""SQL connect and query"""
+import pymysql
+db = opsql.sqlconnect()
+opsql.save_sqlquery(db)
 
-#%% 
-def sqlconnect(): #Open SQL connection
-    print('Openning SQL connection...', '\n')
-    import pymysql
-    db = pymysql.connect( "127.0.0.1", "gofrendly", "gofrendly", "gofrendly" ) # Open database connection
-    print('SQL connection returned at: 127.0.0.1, gofrendly, gofrendly, gofrendly \n')
-    #db.close() # disconnect from server
-    return db
-
-def save_sqlquery(db): #Run SQL query and extract data
-    print('Begin SQL query...', '\n')
-    query = [
-        # 1. Select user profile data 
-        "SELECT user_id, isActive, isProfileCompleted, lang, myStory, describeYourself, iAmCustom, meetForCustom, iAm, meetFor, marital, children \
-            FROM user_details \
-                INNER JOIN users ON user_details.user_id=users.id",
-        # 2. Select friend links
-        "SELECT user_id, friend_id FROM friends", 
-        # 3. Activities data
-        "SELECT id, title, description FROM activities",
-        # 4. Activity links
-        "SELECT activity_id, user_id FROM activity_invites"#,
-        # 5. Chat links
-        ]
-
-    os.chdir('./data/in')
-    global uNodes, fLinks, aNodes, aLinks
-    uNodes = pd.read_sql_query(query[0], db)
-    fLinks = pd.read_sql_query(query[1], db)
-    aLinks = pd.read_sql_query(query[3], db)
-    aNodes = pd.read_sql_query(query[2], db)
-    #cLinks = pd.read_sql_query(query[4], db)
-    saveone()
-    db.close() # disconnect from server 
-    print('SQL query is complete and data has been saved!')
+# %%
+"""Data load"""
+uNodes = op.loadone() #load the dfs
+#[uNodes, fLinks, aNodes, aLinks] = op.loadone()
 
 #%%
-from func.sql import sqlconnect, save_sqlquery
-#global uNodes, fLinks, aNodes, aLinks
-db = sqlconnect()
-save_sqlquery(db)
-
-# %% 
-# Save the files
-def saveone(): #save the dfs
-    os.chdir('./data/in')
-    global uNodes, fLinks, aNodes, aLinks
-    uNodes.to_hdf("uNodes.h5", key='uNodes')
-    fLinks.to_hdf("fLinks.h5", key='fLinks')
-    aNodes.to_hdf("aNodes.h5", key='aNodes')
-    aLinks.to_hdf("aLinks.h5", key='aLinks')
-    #cLinks.to_hdf("cLinks.h5", key='cLinks')
-    os.chdir('../..')
-
-def loadone(): #load the dfs
-    os.chdir('./data/in')
-    global uNodes, fLinks, aNodes, aLinks
-    uNodes = pd.read_hdf("uNodes.h5", key='uNodes')
-    #fLinks = pd.read_hdf("fLinks.h5", key='fLinks')
-    #aNodes = pd.read_hdf("aNodes.h5", key='aNodes')
-    #aLinks = pd.read_hdf("aLinks.h5", key='aLinks')
-    #cLinks = pd.read_hdf("cLinks", key='cLinks')
-    os.chdir('../..')
-
-# %%
-#Translate the text to english
-def trans(sub_stories):
-    from googletrans import Translator
-    translator = Translator()
-    langlist =[]; #langdist = []
-    for index, row in sub_stories.iterrows():
-        text = row['myStory'].replace("\n", ' ')
-        if (text != None) and (text != ''):
-            #langdist.append(translator.detect(row).lang)
-            try: 
-                langlist.append(translator.translate(text, dest = 'en').text)
-            except: print( index, '\n', text , '\n', '###'); break;
-        else: langlist.append(None)
-    return langlist
-
-#from matplotlib import pyplot as plt
-#plt.hist(langlist)
-
-# %%
-"""Data processing"""
-loadone() #load the dfs
-
+"""a. My story profile match using BERT """
 #a. Lang translation to english {German, Swedish, Norwegian} 
-#global uNodes, fLinks, aNodes, aLinks
 stories = pd.concat([uNodes['user_id'], uNodes['myStory']], axis=1)
-
-subStories = stories[:10] # take out a sample
-subStories['myStory_en'] = trans(subStories) # translate
-subStories.to_hdf("subStories.h5", key='stories') #save them
-subStories = pd.read_hdf("subStories.h5", key='stories') #load them
+stories = op.removenull(stories)
+stories.to_hdf("stories.h5", key='stories') #save them
 
 #%%
-subStories = pd.read_hdf("stories.h5", key='stories') #load 
-def removenull(text):
-    text = text[~text['myStory'].isnull()]
-    text = text[text['myStory'] != '']
-    return text
-subStories = removenull(subStories)
-del subStories['myStory']
+from googletrans import Translator
+t = Translator()
+t.translate("mitt namn").tex
+
+# %%
+#import func.op as op
+stories = pd.read_hdf("stories.h5", key='stories')
+
+start_time = time.time()
+substories = stories[:50] # take out a sample
+substories['story'] = op.trans(substories) # translate
+substories = op.removenull(substories)
+del substories['myStory']
+print("--- %s seconds ---" % (time.time() - start_time))
+
+#%%
+substories.to_hdf("stories.h5", key='substories') #save them
+substories = pd.read_hdf("stories.h5", key='substories') #load them
 
 # %%
 #Sentence Embeddings using BERT / RoBERTa / XLNet https://pypi.org/project/sentence-transformers/
 from sentence_transformers import SentenceTransformer
-# Load Sentence model (based on BERT) from URL
-model = SentenceTransformer('bert-base-nli-mean-tokens')
+model = SentenceTransformer('bert-base-nli-mean-tokens') # Load Sentence model (based on BERT) from URL
 
-stories = list(subStories['myStory_en'])
-userId = list(subStories['user_id'])
+stories = list(substories['story'])
+user_id = list(substories['user_id'])
+"""
+# Corpus with example sentences
+stories = ['A man is eating food.',
+          'A man is eating a piece of bread.',
+          'The girl is carrying a baby.',
+          'A man is riding a horse.',
+          'A woman is playing violin.',
+          'Two men pushed carts through the woods.',
+          'A man is riding a white horse on an enclosed ground.',
+          'A monkey is playing drums.',
+          'A cheetah is running behind its prey.']
+user_id = list(range(0,len(stories)))"""
 
+#create embeddings
 stories_embeddings = model.encode(stories)
-    
-queries = stories[5:6]
+
+#create query embeddings
+user = 1; queries = [stories[user]]
 query_embeddings = model.encode(queries)
 
+#Find cosine similarity
+import scipy
 start_time = time.time()
+distances = scipy.spatial.distance.cdist(query_embeddings, stories_embeddings, "cosine")
+match = 6
+ind = distances.argsort()[0].tolist()[:match]
 
-from sklearn.neighbors import NearestNeighbors
-neigh = NearestNeighbors(n_neighbors=1)
-neigh.fit(stories_embeddings[:5])
+print('Matches for user_id:', user_id[user] , 'with story: \n', queries[0], '\n')
 
-print(neigh.kneighbors(query_embeddings))
-print("--- %s seconds ---" % (time.time() - start_time))
+matches = []
+for i in ind:
+    if (distances[0][i] < 0.5): 
+        matches.append(user_id[i])
+        print('Match:', i, ', user_id:', user_id[i], 'cosine_dist:', distances[0][i],', story: \n',  stories[i], '\n')
+    else: print('No other semantic matches to be found!')
 
-#%%
 
-#a. textual data: myStory. BERT embeddings. Tokenize sentences, average BERT embeddings.
+#Elastic search for scalability
+#https://xplordat.com/2019/10/28/semantics-at-scale-bert-elasticsearch/
 
-#lemmatize
-#Swedish and English
-
-#remove stop words
-
-#POS tagging and keep nouns and verbs or not?
-
-#Extract chat connections from Firebase
-#start_time = time.time()
-#print("--- %s seconds ---" % (time.time() - start_time))
-
-# (userid, chatfriend) = cLinks
 
 # %%
 """Data Analysis"""
-loadone() #load the dfs
+op.loadone() #load the dfs
 #Build the Heterogenous Social Network Graph
 #G = nx.Graph()
 

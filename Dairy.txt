@@ -7,8 +7,11 @@ b. Decide on Graph based approach.
 c. Implementing the evaluation metrics.
 d. Prestudy report.
 
-18th Mar
+19th Mar 
+Data cleansing. Check scaling. Implementing the evaluation metrics. 
 
+18th Mar
+Implemented sentence embedding + cosine similary and K-NN. Data cleansing.
 
 17th Mar
  Trying to implement bert-as-a-service, a pretrained module to get the sentence embeddings. Read about it, however, replication had dependency error. However, the paper 'Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (EMNLP 2019)' has better results with trained modules. So, importing and interfaced with my code and is able to generate sentence embedding.
