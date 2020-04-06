@@ -7,10 +7,11 @@ Implementation of evaluation metrics
 """ Import libraries """
 import numpy as np
 
+#==============================================================================
+
 """1. Metrics of Relevance"""
 #%%
 """a. Area under ROC """
-
 def auroc(true, score):
     from sklearn.metrics import roc_auc_score
     res = roc_auc_score(true, score)
@@ -21,7 +22,6 @@ def auroc(true, score):
 """b. MAP@K and MAR@K"""
 # Precision@k = (# of recommended items @k that are relevant) / (# of recommended items @k)
 # Recall@k = (# of recommended items @k that are relevant) / (total # of relevant items)
-
 def meanavg(query, true, score):
     from sklearn.metrics import precision_score, recall_score
     precision = []; recall = []; res = []
@@ -30,106 +30,69 @@ def meanavg(query, true, score):
         recall.append(recall_score(true[q], score[q]))
 
     res[0] = np.mean(precision); res[1] = np.mean(recall)
-    #print("MAP@K and MAR@K has been computed and the values are ", res[0], "and ", res[1])
+    print("MAP@K and MAR@K has been computed and the values are ", res[0], "and ", res[1])
     return res
 
 #%%
 """c. Hit-rate"""
-def hitrate(topNpredictions,leftoutpredictions):
-    hits=0
-    total=0
-    for leftout in leftoutpredections:
-        uid=leftout[0]
-        leftoutmovieid=leftout[1]
-        hit=false
-        for movieId ,predictedRating in topNpredictions[int(userId)]:
-            if(int(movieId)==int(leftoutmovieId)):
-                hit=true
-        if(hit):
-            hits+=1
-        total+=1 
-    
-    return hits/total 
-#==============================================================================
+def hitrate(frds, rec):
+    a = set(frds)
+    b = set(rec)
+    c = a.intersection(b) 
+    res =  len(c)/len(b)  
+    print("Hitrate has been computed and the value is ", res)
+    return res
 
+#==============================================================================
 
 """2. Metrics of Serendipity"""
 #%%
 """a. Personalization """
+def personalization():
+    res = 0
 
+    print("Personalization of users has been computed and the value is ", res)
+    return res
 
 #%%
 """b. Diversity """
-def Diversity(topNPredicted, simsAlgo):
-        n = 0
-        total = 0
-        simsMatrix = simsAlgo.compute_similarities()
-        for userID in topNPredicted.keys():
-            pairs = itertools.combinations(topNPredicted[userID], 2)
-            for pair in pairs:
-                movie1 = pair[0][0]
-                movie2 = pair[1][0]
-                innerID1 = simsAlgo.trainset.to_inner_iid(str(movie1))
-                innerID2 = simsAlgo.trainset.to_inner_iid(str(movie2))
-                similarity = simsMatrix[innerID1][innerID2]
-                total += similarity
-                n += 1
+def diversity():
+    res = 0
 
-        S = total / n
-        return (1-S)
+    print("Diversity of the list has been computed and the value is ", res)
+    return res
 #==============================================================================
 
 
 """3. Metrics of User Hits"""
 #%%
 """a. Link-up rate """
+def linkuprate():
+    res=0
 
+    print("Link-up rate has been computed and the value is ", res)
+    return res
 
 #%%
 """b. User hits ratio """
-def HitRate(topNPredicted, leftOutPredictions):
-        hits = 0
-        total = 0
+def userhits():
+    res=0
+    
+    print("User hits ratio has been computed and the value is ", res)
+    return res
 
-        # For each left-out rating
-        for leftOut in leftOutPredictions:
-            userID = leftOut[0]
-            leftOutMovieID = leftOut[1]
-            # Is it in the predicted top 10 for this user?
-            hit = False
-            for movieID, predictedRating in topNPredicted[int(userID)]:
-                if (int(leftOutMovieID) == int(movieID)):
-                    hit = True
-                    break
-            if (hit) :
-                hits += 1
-
-            total += 1
-
-        # Compute overall precision
-        return hits/total
 #==============================================================================
 
 """4. Rank aware metric"""
 #%%
 """a. Mean Reciprocal Rank (MRR) """
-def AverageReciprocalHitRank(topNPredicted, leftOutPredictions):
-        summation = 0
-        total = 0
-        # For each left-out rating
-        for userID, leftOutMovieID, actualRating, estimatedRating, _ in leftOutPredictions:
-            # Is it in the predicted top N for this user?
-            hitRank = 0
-            rank = 0
-            for movieID, predictedRating in topNPredicted[int(userID)]:
-                rank = rank + 1
-                if (int(leftOutMovieID) == movieID):
-                    hitRank = rank
-                    break
-            if (hitRank > 0) :
-                summation += 1.0 / hitRank
+def mrr(frds, rec):
+    res = 0
+    for i in frds:
+        if i in rec:
+            res += 1/(rec.index(i)+1)
+    res = res/len(frds)
+    print("MRR has been computed and the value is ", res)
+    return res
 
-            total += 1
-
-        return summation / total
 #==============================================================================

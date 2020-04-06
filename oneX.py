@@ -125,7 +125,13 @@ pred = [ 1, 0, 0, 1]
 k = 10; query = 1
 map_k, mar_k = eval.meanavg(query, true, score)
 
-#
+#hitrate
+q = 14
+frds = {}
+frds[14] = (15, 16, 17)
+rec = (12, 13, 14, 15, 16)
+hit = eval.hitrate(frds[q], rec)
+mrr = eval.mrr(frds[q], rec)
 
 
 # %%
