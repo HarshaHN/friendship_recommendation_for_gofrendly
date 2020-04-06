@@ -1,45 +1,51 @@
-a. Time evolution of the network links to be considered for evaluation (similar to Verma et al.) i.e., prediction of future friends based on past friends.
-b. Validation dataset to be considered for hybrid weights.
 
-Plan ahead:
-a. Go ahead and implement semantic similarity.
-b. Decide on Graph based approach.
-c. Implementing the evaluation metrics.
-d. Prestudy report.
 
-19th Mar 
-Data cleansing. Check scaling. Implementing the evaluation metrics. 
+Plan ahead (for the rest of the thesis):
+d. Scaleup and train S-BERT model.
+e. Evaluate S-BERT model.
+f. Data visualize the S-BERT performance.
+g. Implement the GCN.
+h. Scaleup and train GCN.
+i. Evaluate GCN model.
+j. Data visualize the GCN performance.
+k. Implement the hybrid-model two.
+l. Train the hybrid-model
+m. Evaluate the hybrid-model.
+n. Data visualization
+o. Thesis report
+p. Thesis presentation
+q. Thesis formalities completion.
 
-18th Mar
-Implemented sentence embedding + cosine similary and K-NN. Data cleansing.
+In Progress
+a. Data analysis and visualization.
+SocNetV, Long tail plot, Graph-tool and iGraph, Graphviz*, Gephi, Cytoscape and Gnuplot.
+b. Implementation of evaluation metrics
 
-17th Mar
- Trying to implement bert-as-a-service, a pretrained module to get the sentence embeddings. Read about it, however, replication had dependency error. However, the paper 'Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks (EMNLP 2019)' has better results with trained modules. So, importing and interfaced with my code and is able to generate sentence embedding.
+Pending approval
+a. Prestudy report.
 
-16th Mar
-Read the GCN 70%. Implemented the googletrans function to translate to english. Trying to implement bert-as-a-service.
+Completed
+a. Define specification of the research problem
+b. Researcy survey of Social Network Analysis
+c. Deeper analysis for solution
+d. Implement the S-BERT: google trans, S-BERT and cosine similarity.
 
-15th Mar
-70% RW-GCN paper was read. Development environ such as IDE, Conda, version control were setup.
 
-10th Mar
-9th Mar
-Read 'Heterogeneous edge embeddings for Friend Recommendation' in detail, GCN, GraphSAGE, looked into the abstract of 'Evaluating Connection Quality between Two Individuals in Social Networks', 
+Mon
+working on implementing evaluation metrics.
 
-6 March
-Meeting with Gustav. Brainstorming on the problem. Decided to go ahead with semantic similarity and graph neural networks.
 
-5rd March
-a. Read more on SNAP and CS224w, anndn, nlp, ir, networkX, graph-tool, igraph.
-b. Script SQL query to extract all relevant user data from sql database. Organize them into pandas dataframe. Replace links and ids with corresponding data. Then preprocess them such as lemmatize, remove stop words. I was considering to perform POS tagging and keep only nouns and verbs of the user. 
 
-c. Then using NetworkX or SNAP software library create nodes for each user. Then, using connection details. create network graph. Not decided on directed or undirected graph.
-
-c. (2nd Mar) Read the paper 'Heterogeneous Edge Embedding for Friend Recommendation. I decided to go with heterogeneous network with users node and activity node involved. Not sure to have one-link or multi-link connection between nodes. And also, read about information retrieval basics. 
-
-d.  (3rd Mar) Python code to get into SQL data. Perform SQL query. DBeaver is the chosen SQL visualizer. We have 113K user nodes with over 1 million friendship links. SQL data handling is new to me.
 
 Links:
 http://snap.stanford.edu/proj/embeddings-www/files/
 https://web.stanford.edu/class/cs224w/
-------------------------------------------------------------------------------------------f
+------------------------------------------------------------------------------------------
+
+
+
+About life in general:
+is money a necessary to lead a happy life? why am I behind it?
+Must get a girl and have some sex to get new experiences
+Be creative, energetic and do focussed work
+Swedish, data science and girl
