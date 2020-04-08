@@ -6,10 +6,15 @@ Implementation of evaluation metrics
 #%%
 """ Import libraries """
 import numpy as np
-
+# import recmetrics
 #==============================================================================
 
 """1. Metrics of Relevance"""
+
+#evaluate model with MSE and RMSE
+#print(recmetrics.mse(test.actual, test.cf_predictions))
+#print(recmetrics.rmse(test.actual, test.cf_predictions))
+
 #%%
 """a. Area under ROC """
 def auroc(true, score):
@@ -22,6 +27,8 @@ def auroc(true, score):
 """b. MAP@K and MAR@K"""
 # Precision@k = (# of recommended items @k that are relevant) / (# of recommended items @k)
 # Recall@k = (# of recommended items @k that are relevant) / (total # of relevant items)
+#[recmetrics.mark(actual, random_predictions, k=K)]
+
 def meanavg(query, true, score):
     from sklearn.metrics import precision_score, recall_score
     precision = []; recall = []; res = []
@@ -48,17 +55,24 @@ def hitrate(frds, rec):
 """2. Metrics of Serendipity"""
 #%%
 """a. Personalization """
-def personalization():
+def personalization(example_predictions):
     res = 0
-
+    #res = recmetrics.personalization(predicted=example_predictions)
     print("Personalization of users has been computed and the value is ", res)
     return res
+
+"""
+example_predictions = [
+    ['1', '2', 'C', 'D'],
+    ['4', '3', 'm', 'X'],
+    ['7', 'B', 't', 'X']
+]"""
 
 #%%
 """b. Diversity """
 def diversity():
     res = 0
-
+    
     print("Diversity of the list has been computed and the value is ", res)
     return res
 #==============================================================================

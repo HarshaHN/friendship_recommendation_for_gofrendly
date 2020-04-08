@@ -32,36 +32,41 @@ uNodes = op.loadone() #load the dfs
 """a. My story profile match using BERT """
 #a. Lang translation to english {German, Swedish, Norwegian} 
 stories = pd.concat([uNodes['user_id'], uNodes['myStory']], axis=1)
+#stories.columns = ['user_id', 'story']
 stories = op.removenull(stories)
 stories.to_hdf("stories.h5", key='stories') #save them
 
 #%%
 from googletrans import Translator
 t = Translator()
-t.translate("mitt namn").tex
+t.translate("mitt namn").text
 
 # %%
 #import func.op as op
 stories = pd.read_hdf("stories.h5", key='stories')
 
 start_time = time.time()
-substories = stories[:50] # take out a sample
+substories = stories[:100] # take out a sample
 substories['story'] = op.trans(substories) # translate
 substories = op.removenull(substories)
-del substories['myStory']
 print("--- %s seconds ---" % (time.time() - start_time))
 
+
 #%%
+os.chdir('./data/vars')
 substories.to_hdf("stories.h5", key='substories') #save them
-substories = pd.read_hdf("stories.h5", key='substories') #load them
+#substories = pd.read_hdf("stories.h5", key='substories') #load them
+os.chdir('../..')
+del substories['myStory']
 
 # %%
 #Sentence Embeddings using BERT / RoBERTa / XLNet https://pypi.org/project/sentence-transformers/
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('bert-base-nli-mean-tokens') # Load Sentence model (based on BERT) from URL
+model = SentenceTransformer('roberta-large-nli-mean-tokens') # Load Sentence model (based on BERT) from URL
 
 stories = list(substories['story'])
 user_id = list(substories['user_id'])
+
 """
 # Corpus with example sentences
 stories = ['A man is eating food.',
@@ -79,17 +84,18 @@ user_id = list(range(0,len(stories)))"""
 stories_embeddings = model.encode(stories)
 
 #create query embeddings
-user = 1; queries = [stories[user]]
+user = 13; queries = [stories[user]]
 query_embeddings = model.encode(queries)
 
 #Find cosine similarity
 import scipy
 start_time = time.time()
 distances = scipy.spatial.distance.cdist(query_embeddings, stories_embeddings, "cosine")
-match = 6
+match = 10
 ind = distances.argsort()[0].tolist()[:match]
 
 print('Matches for user_id:', user_id[user] , 'with story: \n', queries[0], '\n')
+print("--- %s seconds ---" % (time.time() - start_time))
 
 matches = []
 for i in ind:

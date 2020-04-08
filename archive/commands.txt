@@ -26,7 +26,14 @@ ls
 ssh-keygen -t rsa -b 4096
 cat id_rsa.pub
 
-#MySQL
+#MySQL 
+Windows:
+https://www.youtube.com/watch?v=C9AGrSJ6ZB0&t=183s
+After mysql server, import gofrendly database and must be displayable on the schema.
+Choose MySQL 8+
+
+Linux:
+D:\GoFrendly\archive\gofrendly.sql
 sudo su
 mysql
 CREATE USER 'gofrendly'@'localhost' IDENTIFIED BY 'gofrendly';

@@ -6,7 +6,7 @@ import time
 #Text cleansing
 def cleanse(text):
     import re
-    import emoji
+    import emoji #conda install -c conda-forge emoji
     text = text.replace("\n", " ") #remove breaks
     text = emoji.get_emoji_regexp().sub(u'',text) #remove emojis
     r = re.compile(r'([.,/#!?$%^&*;:{}=_`~()-])[.,/#!?$%^&*;:{}=_`~()-]+')
@@ -16,7 +16,7 @@ def cleanse(text):
 
 #Translate the text to english
 def trans(in_stories):
-    from googletrans import Translator
+    from googletrans import Translator #conda install -c conda-forge googletrans
     langlist =[]; #langdist = []
     for index, row in in_stories.iterrows():
         t = Translator()
@@ -26,16 +26,17 @@ def trans(in_stories):
             time.sleep(.5)
             try: langlist.append(t.translate(txt, dest = 'en').text)
             except: 
-                print( index, '\n', txt , '\n', '###'); langlist.append(None);  break;
+                print( index, '\n', txt , '\n', '###'); langlist.append(None);  
+                break;
         else: langlist.append(None)
     return langlist
 
 def removenull(text):
-    return text[(text['story'] != '') & (~text['story'].isnull())]
+    return text[(text['myStory'] != '') & (~text['myStory'].isnull())]
  
 # %%
 def loadone(): #load the dfs
-    os.chdir('./data/in')
+    os.chdir('./data/raw')
     uNodes = pd.read_hdf("uNodes.h5", key='uNodes')
     #fLinks = pd.read_hdf("fLinks.h5", key='fLinks')
     #aNodes = pd.read_hdf("aNodes.h5", key='aNodes')
