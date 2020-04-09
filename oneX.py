@@ -34,7 +34,7 @@ uNodes = op.loadone() #load the dfs
 stories = pd.concat([uNodes['user_id'], uNodes['myStory']], axis=1)
 #stories.columns = ['user_id', 'story']
 stories = op.removenull(stories)
-stories.to_hdf("stories.h5", key='stories') #save them
+stories.to_hdf("./data/vars/stories.h5", key='stories') #save them
 
 #%%
 from googletrans import Translator
@@ -43,20 +43,18 @@ t.translate("mitt namn").text
 
 # %%
 #import func.op as op
-stories = pd.read_hdf("stories.h5", key='stories')
+stories = pd.read_hdf("./data/vars/stories.h5", key='stories')
 
 start_time = time.time()
-substories = stories[:2000] # take out a sample
+substories = stories[:100] # take out a sample
 substories['story'] = op.trans(substories) # translate
 substories = op.removenull(substories)
 print("--- %s seconds ---" % (time.time() - start_time))
 
 
 #%%
-os.chdir('./data/vars')
 #substories.to_hdf("stories.h5", key='substories') #save them
-substories = pd.read_hdf("stories.h5", key='substories') #load them
-os.chdir('../..')
+substories = pd.read_hdf("./data/vars/stories.h5", key='substories') #load them
 del substories['myStory']
 
 # %%
@@ -78,10 +76,14 @@ stories = ['A man is eating food.',
           'A man is riding a white horse on an enclosed ground.',
           'A monkey is playing drums.',
           'A cheetah is running behind its prey.']
-user_id = list(range(0,len(stories)))"""
+user_id = list(range(0,len(stories)))
+"""
 
 #create embeddings
 stories_embeddings = model.encode(stories)
+story_emb = pd.DataFrame({'user_id': user_id, 'emb': stories_embeddings})
+story_emb.to_hdf('./data/vars/stories.h5', key='emb')
+#stories.h5: stories, substories, emb
 
 #create query embeddings
 user = 13; queries = [stories[user]]
@@ -113,20 +115,13 @@ print("--- %s seconds ---" % (time.time() - start_time))
 #%%
 """ Friendship links """
 import pandas as pd
-import os
 
-os.chdir('./data/raw')
-fLinks = pd.read_hdf("fLinks.h5", key='fLinks')
 #aLinks = pd.read_hdf("aLinks.h5", key='aLinks')
-os.chdir('../..')
 
-#%%
-subflinks = fLinks
-subflinks = subflinks.groupby(['user_id'])['friend_id'].apply(list)
+fLinks = pd.read_hdf("./data/raw/fLinks.h5", key='fLinks')
+fList = fLinks.groupby(['user_id'])['friend_id'].apply(list)
+fList.to_hdf('./data/vars/fLinks.h5', key='fList')
 #test2.set_index('user_id', inplace=True)
-
-#%%
-#import pandas as pd
 
 def getfriends(friends):
     pairs = []
@@ -140,7 +135,21 @@ def getfriends(friends):
                         pairs.append((user, f))
     return pairs
 
-pairs = getfriends(subflinks)
+fList = pd.read_hdf('./data/vars/fLinks.h5', key='fList')
+pairs = getfriends(fList)
+fpairs = pd.Series(pairs)
+fpairs.to_hdf('./data/vars/fLinks.h5', key='fpairs')
+#fpairs = pd.read_hdf("./data/raw/fLinks.h5", key='fpairs')
+#fLinks: fList, fpairs,fLinks
+
+#%%
+""" Activity links """
+import pandas as pd
+
+aLinks = pd.read_hdf('./data/raw/aLinks.h5', key='aLinks')
+aList = aLinks.groupby(['activity_id'])['user_id'].apply(list)
+aList.to_hdf('./data/vars/aLinks.h5', key='aList')
+
 
 #%%
 def clearvars():

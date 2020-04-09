@@ -1,10 +1,16 @@
 
-1. translate:
+1. translate: google translate all user stories.
 Avg story length is 400 ch per user - 36 million users * 20$ per million = 720$
+import all user stories.hd5
+call cleansing and translate function
+save the translated
+
+
 2. Elastic search: 
+dataframe:
+user_id, story_embedd
 https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html
-3. fLinks:
-dict of user = [frds...]
+
 
 In Progress:
 c. Scaleup and train S-BERT model.

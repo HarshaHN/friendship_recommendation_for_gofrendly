@@ -23,7 +23,7 @@ def save_sqlquery(db): #Run SQL query and extract data
         # 3. Activities data
         "SELECT id, title, description FROM activities",
         # 4. Activity links
-        "SELECT activity_id, user_id FROM activity_invites"#,
+        "SELECT activity_id, user_id FROM activity_invites where isGoing = 1"#,
         # 5. Chat links
         ]
 
