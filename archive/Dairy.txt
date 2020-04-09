@@ -1,4 +1,19 @@
 
+1. translate:
+Avg story length is 400 ch per user - 36 million users * 20$ per million = 720$
+2. Elastic search: 
+https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html
+3. fLinks:
+dict of user = [frds...]
+
+In Progress:
+c. Scaleup and train S-BERT model.
+a. Data analysis and visualization: SocNetV
+(Long tail plot, Graph-tool and iGraph, Graphviz*, Gephi, Cytoscape and Gnuplot.)
+b. Implementation of evaluation metrics: auroc, meanavg, mrr, hitrate, perosnalization are done. 
+Pending are diversity, link-up rate, user hits rate. (More can be added as well)
+
+
 Plan ahead (for the rest of the thesis):\
 e. Evaluate S-BERT model.
 f. Data visualize the S-BERT performance.
@@ -13,13 +28,6 @@ n. Data visualization
 o. Thesis report
 p. Thesis presentation
 q. Thesis formalities completion.
-
-In Progress:
-c. Scaleup and train S-BERT model.
-a. Data analysis and visualization: SocNetV
-(Long tail plot, Graph-tool and iGraph, Graphviz*, Gephi, Cytoscape and Gnuplot.)
-b. Implementation of evaluation metrics: auroc, meanavg, mrr, hitrate, perosnalization are done. 
-Pending are diversity, link-up rate, user hits rate. (More can be added as well)
 
 Pending approval:
 a. Prestudy report.
@@ -38,6 +46,9 @@ Links:
 http://snap.stanford.edu/proj/embeddings-www/files/
 https://web.stanford.edu/class/cs224w/
 ------------------------------------------------------------------------------------------
+
+8CG9318CQ7 HHP Envy x360 convertible M15-dr0002no.
+776622077 8 to 7pm HP call centre, 9-13 on weekends.
 
 
 

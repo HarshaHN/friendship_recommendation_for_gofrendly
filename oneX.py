@@ -26,7 +26,7 @@ opsql.save_sqlquery(db)
 # %%
 """Data load"""
 uNodes = op.loadone() #load the dfs
-#[uNodes, fLinks, aNodes, aLinks] = op.loadone()
+[uNodes, fLinks, aNodes, aLinks] = op.loadone()
 
 #%%
 """a. My story profile match using BERT """
@@ -46,7 +46,7 @@ t.translate("mitt namn").text
 stories = pd.read_hdf("stories.h5", key='stories')
 
 start_time = time.time()
-substories = stories[:100] # take out a sample
+substories = stories[:2000] # take out a sample
 substories['story'] = op.trans(substories) # translate
 substories = op.removenull(substories)
 print("--- %s seconds ---" % (time.time() - start_time))
@@ -54,8 +54,8 @@ print("--- %s seconds ---" % (time.time() - start_time))
 
 #%%
 os.chdir('./data/vars')
-substories.to_hdf("stories.h5", key='substories') #save them
-#substories = pd.read_hdf("stories.h5", key='substories') #load them
+#substories.to_hdf("stories.h5", key='substories') #save them
+substories = pd.read_hdf("stories.h5", key='substories') #load them
 os.chdir('../..')
 del substories['myStory']
 
@@ -91,11 +91,10 @@ query_embeddings = model.encode(queries)
 import scipy
 start_time = time.time()
 distances = scipy.spatial.distance.cdist(query_embeddings, stories_embeddings, "cosine")
-match = 10
+match =50
 ind = distances.argsort()[0].tolist()[:match]
 
 print('Matches for user_id:', user_id[user] , 'with story: \n', queries[0], '\n')
-print("--- %s seconds ---" % (time.time() - start_time))
 
 matches = []
 for i in ind:
@@ -104,9 +103,50 @@ for i in ind:
         print('Match:', i, ', user_id:', user_id[i], 'cosine_dist:', distances[0][i],', story: \n',  stories[i], '\n')
     else: print('No other semantic matches to be found!')
 
+print("--- %s seconds ---" % (time.time() - start_time))
 
 #Elastic search for scalability
 #https://xplordat.com/2019/10/28/semantics-at-scale-bert-elasticsearch/
+
+
+#========================================================================
+#%%
+""" Friendship links """
+import pandas as pd
+import os
+
+os.chdir('./data/raw')
+fLinks = pd.read_hdf("fLinks.h5", key='fLinks')
+#aLinks = pd.read_hdf("aLinks.h5", key='aLinks')
+os.chdir('../..')
+
+#%%
+subflinks = fLinks
+subflinks = subflinks.groupby(['user_id'])['friend_id'].apply(list)
+#test2.set_index('user_id', inplace=True)
+
+#%%
+#import pandas as pd
+
+def getfriends(friends):
+    pairs = []
+    visited = set()
+    for user, frds in friends.items():
+        for f in frds:
+            if f not in visited: #if f is new
+                if f in friends.loc[:]:
+                    if user in friends.loc[f]:
+                        visited.add(user); visited.add(f)
+                        pairs.append((user, f))
+    return pairs
+
+pairs = getfriends(subflinks)
+
+#%%
+def clearvars():
+    import sys
+    sys.modules[__name__].__dict__.clear()
+
 
 
 # %%
