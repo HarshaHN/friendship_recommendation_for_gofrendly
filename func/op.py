@@ -17,17 +17,22 @@ def cleanse(text):
 #Translate the text to english
 def trans(in_stories):
     from googletrans import Translator #conda install -c conda-forge googletrans
-    langlist =[]; #langdist = []
+    #from langdetect import detect
+
+    langlist =[]; count = 0 #langdist = []
     for index, row in in_stories.iterrows():
         t = Translator()
         txt = cleanse(row['myStory']) #cleanse  
         if (txt != None) and (txt != ''):
-            #langdist.append(t.detect(row).lang)
             time.sleep(.5)
-            try: langlist.append(t.translate(txt, dest = 'en').text)
+            try: 
+                langlist.append(t.translate(txt).text) #detect(txt)
+                count += 1
+                #if count >= 300 : return langlist
+                print('Index:', index, ' Count:', count)
             except: 
-                print( index, '\n', txt , '\n', '###'); langlist.append(None);  
-                break;
+                print( index, '\n', txt , '\n', '###'); langlist.append(None)  
+                break
         else: langlist.append(None)
     return langlist
 

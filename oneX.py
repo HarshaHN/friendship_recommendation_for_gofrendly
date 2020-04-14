@@ -11,7 +11,7 @@ Friendship recommendation engine using deep neural network (Social Network Analy
 import os
 import numpy as np
 import pandas as pd
-import networkx as nx
+#import networkx as nx
 import time
 import func.op as op
 import func.sql as opsql
@@ -42,18 +42,19 @@ t = Translator()
 t.translate("mitt namn").text
 
 # %%
-#import func.op as op
+import pandas as pd
+import func.op as op
+import time
 stories = pd.read_hdf("./data/vars/stories.h5", key='stories')
-
+stories.columns = ['user_id', 'myStory']
 start_time = time.time()
-substories = stories[:100] # take out a sample
+substories = stories[:400] # take out a sample
 substories['story'] = op.trans(substories) # translate
 substories = op.removenull(substories)
 print("--- %s seconds ---" % (time.time() - start_time))
-
+substories.to_hdf("./data/vars/stories.h5", key='substories') #save them
 
 #%%
-#substories.to_hdf("stories.h5", key='substories') #save them
 substories = pd.read_hdf("./data/vars/stories.h5", key='substories') #load them
 del substories['myStory']
 
@@ -93,35 +94,38 @@ query_embeddings = model.encode(queries)
 import scipy
 start_time = time.time()
 distances = scipy.spatial.distance.cdist(query_embeddings, stories_embeddings, "cosine")
-match =50
-ind = distances.argsort()[0].tolist()[:match]
-
+match=6
+ind = distances.argsort()[0].tolist()#[:match]
+indx = ind[:6] + ind[-6:]
 print('Matches for user_id:', user_id[user] , 'with story: \n', queries[0], '\n')
 
-matches = []
-for i in ind:
+matches = []; count = 0
+for i in indx:
+    count += 1
+    if count == match+1 :
+        print('=============================')
+        print('---Dissimilar matches here---')
     if (distances[0][i] < 0.5): 
         matches.append(user_id[i])
         print('Match:', i, ', user_id:', user_id[i], 'cosine_dist:', distances[0][i],', story: \n',  stories[i], '\n')
-    else: print('No other semantic matches to be found!')
+    else: 
+        print('No other semantic matches to be found!')
 
 print("--- %s seconds ---" % (time.time() - start_time))
 
 #Elastic search for scalability
 #https://xplordat.com/2019/10/28/semantics-at-scale-bert-elasticsearch/
 
-
 #========================================================================
+
 #%%
 """ Friendship links """
 import pandas as pd
 
-#aLinks = pd.read_hdf("aLinks.h5", key='aLinks')
-
 fLinks = pd.read_hdf("./data/raw/fLinks.h5", key='fLinks')
 fList = fLinks.groupby(['user_id'])['friend_id'].apply(list)
 fList.to_hdf('./data/vars/fLinks.h5', key='fList')
-#test2.set_index('user_id', inplace=True)
+#fList = pd.read_hdf("./data/vars/fLinks.h5", key='fList')
 
 def getfriends(friends):
     pairs = []
@@ -139,7 +143,7 @@ fList = pd.read_hdf('./data/vars/fLinks.h5', key='fList')
 pairs = getfriends(fList)
 fpairs = pd.Series(pairs)
 fpairs.to_hdf('./data/vars/fLinks.h5', key='fpairs')
-#fpairs = pd.read_hdf("./data/raw/fLinks.h5", key='fpairs')
+#fpairs = pd.read_hdf("./data/vars/fLinks.h5", key='fpairs')
 #fLinks: fList, fpairs,fLinks
 
 #%%
@@ -149,6 +153,35 @@ import pandas as pd
 aLinks = pd.read_hdf('./data/raw/aLinks.h5', key='aLinks')
 aList = aLinks.groupby(['activity_id'])['user_id'].apply(list)
 aList.to_hdf('./data/vars/aLinks.h5', key='aList')
+
+#========================================================================
+#%%
+#substories = pd.read_hdf('stories.h5', key='substories')
+user_emb = pd.read_hdf('./data/vars/stories.h5', key='emb')
+ids = list(user_emb['user_id'])
+subfp =[]
+for a in fpairs.iteritems():
+    if (a[1][0] in ids) & (a[1][1] in ids):
+        subfp.append(a[1])
+
+import pickle
+filename = './data/vars/classvars.pickle'
+with open(filename, 'wb') as f:
+    pickle.dump([user_emb, subfp], f)
+#with open(filename, 'rb') as f:
+#    user_emb, subfp = pickle.load(f)
+
+
+#%% 
+""" 
+Build, train and benchmark a classifier model 
+
+
+"""
+
+
+
+
 
 
 #%%
@@ -167,7 +200,7 @@ op.loadone() #load the dfs
 
 # %%
 #Evaluation
-import eval
+import func.eval as eval
 
 #auroc
 true = np.array([0, 0, 1, 1])
