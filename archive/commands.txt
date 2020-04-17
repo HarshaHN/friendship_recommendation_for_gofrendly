@@ -31,6 +31,7 @@ Windows:
 https://www.youtube.com/watch?v=C9AGrSJ6ZB0&t=183s
 After mysql server, import gofrendly database and must be displayable on the schema.
 Choose MySQL 8+
+To reuse: https://stackoverflow.com/questions/32022580/failed-to-connect-to-mysql-at-localhost3306-with-user-root
 
 Linux:
 D:\GoFrendly\archive\gofrendly.sql

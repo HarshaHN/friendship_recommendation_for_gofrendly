@@ -52,11 +52,17 @@ substories = stories[:400] # take out a sample
 substories['story'] = op.trans(substories) # translate
 substories = op.removenull(substories)
 print("--- %s seconds ---" % (time.time() - start_time))
+substories = substories.reset_index(drop=True)
 substories.to_hdf("./data/vars/stories.h5", key='substories') #save them
+del substories['myStory']
 
 #%%
-substories = pd.read_hdf("./data/vars/stories.h5", key='substories') #load them
-del substories['myStory']
+substories.columns = ['user_id', 'myStory']
+substories = op.removenull(substories)
+substories.columns = ['user_id', 'story']
+substories = substories.reset_index(drop=True)
+#substories.to_hdf("./data/vars/stories.h5", key='short')
+substories = pd.read_hdf("./data/vars/stories.h5", key='short') #load them
 
 # %%
 #Sentence Embeddings using BERT / RoBERTa / XLNet https://pypi.org/project/sentence-transformers/
@@ -80,21 +86,26 @@ stories = ['A man is eating food.',
 user_id = list(range(0,len(stories)))
 """
 
+#%%
+start_time = time.time()
 #create embeddings
 stories_embeddings = model.encode(stories)
-story_emb = pd.DataFrame({'user_id': user_id, 'emb': stories_embeddings})
-story_emb.to_hdf('./data/vars/stories.h5', key='emb')
-#stories.h5: stories, substories, emb
+print("--- %s seconds ---" % (time.time() - start_time)) #534 sec
+story_emb = pd.DataFrame({'user_id': user_id, 'emb': stories_embeddings, 'story': stories})
+story_emb.to_hdf('./data/vars/one.h5', key='emb')
+#stories.h5: stories, substories, short
+#one.h5: emb
 
+#%%
 #create query embeddings
-user = 13; queries = [stories[user]]
+user = 24; queries = [stories[user]]
 query_embeddings = model.encode(queries)
 
 #Find cosine similarity
 import scipy
 start_time = time.time()
-distances = scipy.spatial.distance.cdist(query_embeddings, stories_embeddings, "cosine")
-match=6
+distances = scipy.spatial.distance.cdist(query_embeddings, list(story_emb['emb']), "cosine")
+match = 6
 ind = distances.argsort()[0].tolist()#[:match]
 indx = ind[:6] + ind[-6:]
 print('Matches for user_id:', user_id[user] , 'with story: \n', queries[0], '\n')
@@ -105,7 +116,7 @@ for i in indx:
     if count == match+1 :
         print('=============================')
         print('---Dissimilar matches here---')
-    if (distances[0][i] < 0.5): 
+    if True: #(distances[0][i] < 0.5): 
         matches.append(user_id[i])
         print('Match:', i, ', user_id:', user_id[i], 'cosine_dist:', distances[0][i],', story: \n',  stories[i], '\n')
     else: 
@@ -129,13 +140,11 @@ fList.to_hdf('./data/vars/fLinks.h5', key='fList')
 
 def getfriends(friends):
     pairs = []
-    visited = set()
     for user, frds in friends.items():
         for f in frds:
-            if f not in visited: #if f is new
+            if (f, user) not in pairs:
                 if f in friends.loc[:]:
                     if user in friends.loc[f]:
-                        visited.add(user); visited.add(f)
                         pairs.append((user, f))
     return pairs
 
@@ -156,29 +165,33 @@ aList.to_hdf('./data/vars/aLinks.h5', key='aList')
 
 #========================================================================
 #%%
-#substories = pd.read_hdf('stories.h5', key='substories')
-user_emb = pd.read_hdf('./data/vars/stories.h5', key='emb')
+fpairs = pd.read_hdf("./data/vars/fLinks.h5", key='fpairs')
+user_emb = pd.read_hdf('./data/vars/one.h5', key='emb')
 ids = list(user_emb['user_id'])
 subfp =[]
 for a in fpairs.iteritems():
     if (a[1][0] in ids) & (a[1][1] in ids):
         subfp.append(a[1])
 
+del a, fpairs, ids
+
+#Save the vars
 import pickle
 filename = './data/vars/classvars.pickle'
 with open(filename, 'wb') as f:
     pickle.dump([user_emb, subfp], f)
-#with open(filename, 'rb') as f:
-#    user_emb, subfp = pickle.load(f)
 
+del f, filename
 
 #%% 
 """ 
 Build, train and benchmark a classifier model 
 
-
 """
-
+import pickle
+filename = './data/vars/classvars.pickle'
+with open(filename, 'rb') as f:
+    user_emb, subfp = pickle.load(f)
 
 
 

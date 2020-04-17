@@ -23,8 +23,31 @@ def save_sqlquery(db): #Run SQL query and extract data
         # 3. Activities data
         "SELECT id, title, description FROM activities",
         # 4. Activity links
-        "SELECT activity_id, user_id FROM activity_invites where isGoing = 1"#,
+        "SELECT activity_id, user_id FROM activity_invites where isGoing = 1",
         # 5. Chat links
+
+        """ Classification model """
+        """a. Positive samples"""
+        # 1. Chat friends(hard positive)
+        # 2. Mutually connected friends(hard positive)
+        # 3. Activity friends(soft positive)
+        # 4. Chat friends of chat friends(very soft positive)
+        # Comments: 1 and 2 may overlap, 3 shows common interest & may lead to more 
+        # of those, 4 can be populated however may never have seen each other.
+
+        """b. Negative samples"""
+        # 1. Blocked user pairs (hard negative) 
+        # count: a. b.13,684 c. 
+        'SELECT user_id, blocked_id FROM blocked_users',
+        # 2. Viewed users but not added as friends (hard negative)
+        # Viewed users count: a. b.4,846,799 c. 
+        'SELECT user_id, seen_id FROM seen_users'
+        # 3. one-way added as friend but not chat friends (hard negative)
+        # one-way friends count: a. b.1,102,338 c.
+        #Comments: 
+
+        #Overall comments:
+        # A = A-B leading to mutually exclusive groups.
         ]
 
     os.chdir('./data/raw')

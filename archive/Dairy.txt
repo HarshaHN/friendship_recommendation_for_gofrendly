@@ -12,6 +12,41 @@ dataframe:
 user_id, story_embedd
 https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html
 
+
+Hello!
+We have the data imbalance problem in the previous method, which perform poorly for minorit classes which in our case is the most important i.e., positive relationship. So, with lot of reading on how to resolve with such
+I need your thoughts on something here. I have intuitively formulated the positive and negative relationships to train our model. Let me know you approve. Let me explain.
+
+Positive samples: chat friends, mutally connected friends, chat friends of chat friends, activity friends
+Negative samples: blocked friends, Viewed users but not added as friends, one-way added as friend but not chat friends
+
+More details on why this is important: Assume we have 300 users, we need to train a classification model which can say whether two users' profile data/bio/stories can tell that there is gonna be a positive relationship or not.
+For this we need large both positive and negative samples, the more the better model can learn.  So, then we can feed the fresh members (usually a large number) who do not belong to these two sets. Then, we get the results.
+
+#==========================================================================================
+Weekly post 09: Apr 10-17, 2020 as follows:
+Last weeks progress:
+a. Tried to visualize the network using socnetv, gephi and other graph-tools. But none could handle the scale and they all crashed.
+b. I tried to try other free popular translate service py-translate, trans but did not work, however, langdetect lib works which can avoid translating stories which are already in English.
+c. For the classification task, I discovered that we have a serious data imbalance issue. To evaluate this, I considered 300 users(max trans limit) set. Now the positive samples are just 30 in numbers, blocked users are also few in numbers, however, not-yet friends would be all other combinations which is a large number. As I read multiple strategies to solve, the best one is to use SMOTE(Synthetic Minority Over-sampling TEchnique) with adaboost or gradient boosting but at 38% precision and 28% recall for the minority class.
+d. In order to solve the above, I spent time brainstorming new ways to get more numbers of positive and negative samples. Discussed with my friends, listened to a few lectures on how this is solved in other link prediction problems, but less emphasis is given for data handling in these lectures/slides.  I arrived at a new idea and these data points populate positive and negative friendship samples. 
+Positive samples: chat friends, mutually connected friends, chat friends of chat friends, activity friends.
+Negative samples: blocked friends, Viewed users but not added as friends, one-way added as a friend but not chat friends.
+The beauty is that once the model is trained, then remaining not-yet friends(and even not seen) shall be fed and it will fall either in this class.
+e. Until above I had only focused on user bio(or stories). However, a profile has more info. I was thinking of including them. For which some more data extraction and data cleansing is needed. I am writing a few more SQL query and python code and get a consolidated list.
+f. As mentioned in the thesis proposal, I have a 3.5 credit course running now called 'Global competence'. I have a final project I am working on it parallelly and It will take a few more days to finish. Lastly, I took a day off on Monday as for Easter festivities.
+g. Lastly, I came across the step called 'Explorative Data Analysis' which is an essential step taken for any data science projects. It is the first glimpse into the data giving a lot of understanding about the data in place. This is something I read and learnt a bit more in detail. This was not taught at KTH but seen as a best practice.
+
+Discussion:
+Nothing I have in mind. 
+
+Next week targets:
+a. Prepare train data set, train the classification model for 300 users set.
+b. Scale-up to the network to a city, translate using Google API and evaluate on validation set. 
+
+Schedule:
+https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
+
 #==========================================================================================
 Meeting 08 - 16.00-17.20 on Apr 10, 2020 and MoM as follows:
 Discussion outcomes:
@@ -32,9 +67,20 @@ Other available ones are Graph-tool and iGraph, Graphviz, Gephi, Cytoscape, Long
 Last weeks progress:
 Overall
 Sat: Tried to visualize the network using socnetv, gephi and other graph-tools. But none could handle the scale.
-Sun: translate, py-translate is deprecated, did not work. langdetect lib works for 1000.
+Sun: translate, py-translate is deprecated, did not work. langdetect lib worked for 1000.
 Data prep for classification task. Dealing with data imbalance.
-Mon:
+Mon and tue: Considered 300 users(max trans limit) to build the complete pipeline and then scale-up. 
+For 300 generate embeddings. Now the positive samples are just 30 in numbers leading to data-imbalance.
+Read about multiple strategies to solve this and the best one is to use SMOTE to synthesis and
+both Ada boost and gradient boosting seem perform better but at 38% precision and 28 recall.
+Brainstorming new ways to get positive and negative samples. Had discussion with my friends
+and led to considering GNN approach. Gonna listen to online lectures on GNN to get deeper understanding.
+Wed: Working on global competence project.
+Thur: Learnt about explorative data analysis.
+Positive samples: chat friends(1), mutally connected friends(1), chat friends of chat friends(0.5), activity friends(0.5)
+Negative samples: blocked friends(-1), Viewed users but not added as friends(-1), one-way added as friend but not chat friends(-1)
+SQL scripts to collect the above data.
+Fri: 
 
 Schedule: (I am two weeks behind)
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
@@ -43,7 +89,7 @@ https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2
 Decision: consider option b, it may cost up to 100-200$ and move ahead.
 In Progress:
 a. Scaleup and train S-BERT model.
-z. Data visualization: Neo4j Labs:
+z. Data visualization: Neo4j Labs
 https://neo4j.com/developer/tools-graph-visualization/
 
 
@@ -89,3 +135,12 @@ Swedish, data science
 Read about global affairs.
 Job search.
 
+
+
+
+
+
+
+Skype details: connectharsha
+Zoom Meeting ID: 805 548 4164
+Phone : +46 761556623
