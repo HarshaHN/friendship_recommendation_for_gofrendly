@@ -2,7 +2,6 @@
 
 1. translate: google translate all user stories.
 Avg story length is 400 ch per user - 36 million users * 20$ per million = 720$
-
 conda install -c conda-forge langdetect
 pip install spacy-langdetect
 conda install -c conda-forge google-cloud-translate
@@ -11,17 +10,6 @@ conda install -c conda-forge google-cloud-translate
 dataframe:
 user_id, story_embedd
 https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html
-
-
-Hello!
-We have the data imbalance problem in the previous method, which perform poorly for minorit classes which in our case is the most important i.e., positive relationship. So, with lot of reading on how to resolve with such
-I need your thoughts on something here. I have intuitively formulated the positive and negative relationships to train our model. Let me know you approve. Let me explain.
-
-Positive samples: chat friends, mutally connected friends, chat friends of chat friends, activity friends
-Negative samples: blocked friends, Viewed users but not added as friends, one-way added as friend but not chat friends
-
-More details on why this is important: Assume we have 300 users, we need to train a classification model which can say whether two users' profile data/bio/stories can tell that there is gonna be a positive relationship or not.
-For this we need large both positive and negative samples, the more the better model can learn.  So, then we can feed the fresh members (usually a large number) who do not belong to these two sets. Then, we get the results.
 
 #==========================================================================================
 Weekly post 09: Apr 10-17, 2020 as follows:
@@ -46,44 +34,8 @@ b. Scale-up to the network to a city, translate using Google API and evaluate on
 
 Schedule:
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
-
 #==========================================================================================
-Meeting 08 - 16.00-17.20 on Apr 10, 2020 and MoM as follows:
-Discussion outcomes:
-a. Resolution for the two blockers in finishing 'scaleup and train S-BERT model':
-    i. Translate 85,000 stories to English and generate S-BERT embeddings. Official Google API is priced at 20$ per million ch translates to 720$ for 85,000 with avg. of 400 ch/user
-    ii. Only consider a particular city say Gotheberg users. User count would be less and thus, the cost is significantly reduced. Complete the task for this user set.
-    
-ii. Given friends list and their stories embeddings, train a classification model to predict link or no link. For this case, we use the existing mutual friends and chat friends as a positive example of friendship. However, the question was what pairs of users to be considered as negative/not-friends samples. We decided to split into 3 categories: friends, not-yet friends and blocked users and train the model accordingly.
-b. My supervisor asked me to consider the idea that users would infact like to be friends with users with similar meaning stories called homophily. However, this would be something we can experiment later.
 
-Next week targets:
-a. Carry-out translation of user stories.
-b. Train the classification model to predict link or no-link.
-c. Benchmark the results of this SBERT-model.
-z. Simple data visualization of the social network: plan to use SocNetV.
-Other available ones are Graph-tool and iGraph, Graphviz, Gephi, Cytoscape, Long tail plot and Gnuplot.
-
-Last weeks progress:
-Overall
-Sat: Tried to visualize the network using socnetv, gephi and other graph-tools. But none could handle the scale.
-Sun: translate, py-translate is deprecated, did not work. langdetect lib worked for 1000.
-Data prep for classification task. Dealing with data imbalance.
-Mon and tue: Considered 300 users(max trans limit) to build the complete pipeline and then scale-up. 
-For 300 generate embeddings. Now the positive samples are just 30 in numbers leading to data-imbalance.
-Read about multiple strategies to solve this and the best one is to use SMOTE to synthesis and
-both Ada boost and gradient boosting seem perform better but at 38% precision and 28 recall.
-Brainstorming new ways to get positive and negative samples. Had discussion with my friends
-and led to considering GNN approach. Gonna listen to online lectures on GNN to get deeper understanding.
-Wed: Working on global competence project.
-Thur: Learnt about explorative data analysis.
-Positive samples: chat friends(1), mutally connected friends(1), chat friends of chat friends(0.5), activity friends(0.5)
-Negative samples: blocked friends(-1), Viewed users but not added as friends(-1), one-way added as friend but not chat friends(-1)
-SQL scripts to collect the above data.
-Fri: 
-
-Schedule: (I am two weeks behind)
-https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
 
 #==========================================================================================
 Decision: consider option b, it may cost up to 100-200$ and move ahead.
@@ -134,12 +86,6 @@ Swedish, data science
 
 Read about global affairs.
 Job search.
-
-
-
-
-
-
 
 Skype details: connectharsha
 Zoom Meeting ID: 805 548 4164
