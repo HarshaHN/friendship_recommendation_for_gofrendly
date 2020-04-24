@@ -1,112 +1,111 @@
+
 #%%
 import pandas as pd
 import pymysql
 import func.sql as opsql
 
-#%%
-""" Exploratory Data Analysis """
-# Perform EDA from pandas
-# https://medium.com/datadriveninvestor/introduction-to-exploratory-data-analysis-682eb64063ff
-# Use data pre-processing libs such as 
-def eda():
-    db = opsql.sqlconnect()
-    query = { 
-            #User profile features
-            'in' : "SELECT user_id, iAm, meetFor, birthday, marital, children FROM user_details \
-            INNER JOIN users ON user_details.user_id=users.id",
-            'info' : "SELECT user_id, birthday, city, country, lat, lng FROM user_details \
-            INNER JOIN users ON user_details.user_id=users.id"
-        }
-    info = pd.read_sql_query(query['info'], db)
-    info.to_hdf("./data/raw/in.h5", key='info')
-    db.close()
-    return info
+# For 'city = Göteborg', get [ user_id, stories, iam, meetFor, birthday, marital, children, lat, lng]
+# df = df_sqlquery(query)
+query = {
+    '01' : "SELECT user_id, myStory, iAm, meetFor, birthday, marital, children, lat, lng FROM user_details a\
+            INNER JOIN users b ON (a.user_id=b.id) WHERE a.city = \"Stockholm\"",
+    }
+df = opsql.df_sqlquery(query['01'])
+del query 
+df.to_hdf("./data/raw/dproc.h5", key='01')
+#------------------------------------------------------------------------------------
 
 #%%
-""" 2. Classification model """
-def cmodel():
-    db = opsql.sqlconnect()
-    query = {
-            # a. Positive samples
-            # 1. Chat friends(hard positive)
+df = pd.read_hdf("./data/raw/dproc.h5", key='01')
+# [ user_id, myStory, values(iAm, meetFor, marital, has child, age, lat, lng) in range(0,1) ]
+# from ['user_id', 'myStory', 'iAm', 'meetFor', 'age', 'marital', 'children', 'lat', 'lng']
 
-            # 2. Mutually connected friends(hard positive)
-            # count: a. b.120,409 c. 
-            'mf' : "SELECT a.user_id, a.friend_id FROM friends a\
-            INNER JOIN friends b ON (a.user_id = b.friend_id) AND (a.friend_id = b.user_id) WHERE (a.user_id > a.friend_id)",
+df.set_index('user_id', inplace = True)
 
-            # 3. Activity friends(soft positive)
-            # count: a. b.32,422 c. 
-            'af' : "SELECT activity_id, user_id FROM activity_invites WHERE isGoing = 1",
+#cleanse myStory
+def cleanse(text):
+    #try:
+    if (text == '') or (text == None): #.isnull()
+        text = -1
+    else:
+        import re
+        import emoji #conda install -c conda-forge emoji
+        text = text.replace("\n", ". ") #remove breaks
+        text = emoji.get_emoji_regexp().sub(u'',text) #remove emojis
+        r = re.compile(r'([.,/#!?$%^&*;:{}=_`~()-])[.,/#!?$%^&*;:{}=_`~()-]+')
+        text = r.sub(r'\1', text) #multiple punctuations
+        if len(text) < 10: 
+            text = -1 #short texts
+    #except: print(text)
+    return text
 
-            # 4. Chat friends of chat friends(soft positive)
-            # Comments: 1 and 2 may overlap, 3 shows common interest & may lead to more 
-            # of those, 4 can be populated however may never have seen each other.
+df['myStory'] = df['myStory'].apply(lambda x: cleanse(x))
 
-            #b. Negative samples
-            # 1. Blocked user pairs (hard negative) 
-            # count: a. b.13,684 c. 
-            'bf' : "SELECT user_id, blocked_id FROM blocked_users",
+#'iAm', 'meetFor' to set()
+df['iAm'] = df['iAm'].apply(lambda x: set(x.split(',')) if x != None else set())
+df['meetFor'] = df['meetFor'].apply(lambda x: set(x.split(',')) if x != None else set())
 
-            # 2. Viewed users but not added as friends (hard negative)
-            # Viewed users count: a. b.4,464,793(4,846,799) c. 
-            'vnf' : "SELECT a.user_id, a.seen_id FROM seen_users a\
-            LEFT JOIN friends b\
-            ON (b.user_id = a.user_id) AND (b.friend_id = a.seen_id)\
-            WHERE b.user_id IS null",
+#'birthday' to age
+df['age'] = df['birthday'].apply(lambda x: int((x.today() - x).days/365))
+df.drop(columns='birthday', inplace = True)
 
-            # 3. one-way added as friend but not chat friends (hard negative)
-            # one-way friends count: a. b.1,102,338 c.
-            'uf' : "SELECT user_id, friend_id FROM friends"#,
-            #Comments: 
-            # A = A-B leading to mutually exclusive groups.
-        }
-    # mf, af, bf, vnf, uf
-    print('--> SQL query begins...')
-    mf = pd.read_sql_query(query['mf'], db)
-    mf.to_hdf("./data/raw/cmodel.h5", key='mf')
-    print('--> mf\' query finished ')
-    af = pd.read_sql_query(query['af'], db)
-    af.to_hdf("./data/raw/cmodel.h5", key='af')
-    print('--> af\' query finished ')
-    bf = pd.read_sql_query(query['bf'], db)
-    bf.to_hdf("./data/raw/cmodel.h5", key='bf')
-    print('--> bf\' query finished ')
-    vnf = pd.read_sql_query(query['vnf'], db)
-    vnf.to_hdf("./data/raw/cmodel.h5", key='vnf')
-    print('--> vnf\' query finished ')
-    uf = pd.read_sql_query(query['uf'], db)
-    uf.to_hdf("./data/raw/cmodel.h5", key='uf')
-    print('--> uf\' query finished ')
+# has children, marital
+#df['has_kids'] = df['children'].apply(lambda x: 1 if (x>=0) else -1)
 
-    db.close()
-    print('db connection has been closed.')
-    return [mf, af, bf, vnf, uf]
+df.to_hdf("./data/raw/dproc.h5", key='02')
+#--------------------------------------------
 
-[mf, af, bf, vnf, uf] = cmodel()
+#%% stories translation with GCP
+df = pd.read_hdf("./data/raw/dproc.h5", key='02')
 
-#%%
-""" 3. Network aggregation """
+# df.to_hdf("./data/raw/dproc.h5", key='03')
+#--------------------------------------------
 
-#%% I/O data architect
+# Stories to S-BERT emb
 
-#%% Data flow architect
+# df.to_hdf("./data/raw/dproc.h5", key='04')
+#--------------------------------------------
 
-#%% Compatibility to data evolution
+# user vectors = [ user_id, sbert_emb, values(iam, meetFor, marital, has children), eucld_diff(age, lat, lng) in range(0,1) ]
 
-#%% backup or reference
+# df.to_hdf("./data/raw/dproc.h5", key='05')
+#--------------------------------------------
+
+# delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)/3) binary_equality(marital, has children), eucld_diff(age, lat, lng) in range(0,1) ]
+
+# df.to_hdf("./data/raw/dproc.h5", key='06')
+#--------------------------------------------
+
+# train c-model using delta vectors.
+
+# df.to_hdf("./data/raw/dproc.h5", key='07')
+#--------------------------------------------
+
+# Benchmark the results
+
+# df.to_hdf("./data/raw/dproc.h5", key='08')
+#--------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
 """
-query = [
-        # 1. Select user profile data 
-        "SELECT user_id, isActive, isProfileCompleted, lang, myStory, describeYourself, iAmCustom, meetForCustom, iAm, meetFor, marital, children \
-            FROM user_details \
-                INNER JOIN users ON user_details.user_id=users.id",
-        # 2. Select friend links
-        "SELECT user_id, friend_id FROM friends", 
-        # 3. Activities data
-        "SELECT id, title, description FROM activities",
-        # 4. Activity links
-        "SELECT activity_id, user_id FROM activity_invites where isGoing = 1",
-        # 5. Chat links
-        ]
+'in' : "SELECT user_id, iAm, meetFor, birthday, marital, children FROM user_details \
+INNER JOIN users ON user_details.user_id=users.id",
+main =  pd.read_hdf("./data/raw/in.h5", key='in')
+
+'info' : "SELECT user_id, birthday, city, country, lat, lng FROM user_details 
+main =  pd.read_hdf("./data/raw/in.h5", key='info')
+
 """
+
+# %%

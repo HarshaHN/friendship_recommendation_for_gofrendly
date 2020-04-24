@@ -52,18 +52,6 @@ bsm = set(tuple(zip(vnf.user_id, vnf.seen_id)))
 
 del a, b, mf, af, bf, vnf, uf
 
-#%%
-
-#%%
-user_id = list(users['user_id'])
-p = set(pdata['pairs'])
-n = set(ndata['pairs'])
-p = p - n
-# Drop duplicates
-# A = A-B; N = All - A - B
-
-#all = list(itertools.combinations(user_id, 2))
-t = all - p - n 
 
 #%% 
 """ Classification model """

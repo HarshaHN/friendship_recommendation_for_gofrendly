@@ -186,6 +186,9 @@ xf_test = feature(x_test, emb)
 
 """
 #SMOTE
+# https://towardsdatascience.com/comparing-different-classification-machine-learning-models-for-an-imbalanced-dataset-fdae1af3677f
+# https://machinelearningmastery.com/random-oversampling-and-undersampling-for-imbalanced-classification/
+
 from imblearn.over_sampling import SMOTE
 import numpy as np
 sm = SMOTE(random_state=12)
@@ -246,6 +249,7 @@ op.loadone() #load the dfs
 # %%
 #Evaluation
 import func.eval as eval
+import numpy as np
 
 #auroc
 true = np.array([0, 0, 1, 1])

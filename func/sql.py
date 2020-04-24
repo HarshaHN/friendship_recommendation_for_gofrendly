@@ -2,16 +2,26 @@
 import os
 import pandas as pd
 import pymysql
-import func.dproc
 
 #%% 
 def sqlconnect(): #Open SQL connection
-    print('Openning SQL connection...', '\n')
+    print('-> Openning SQL connection...')
     db = pymysql.connect( "127.0.0.1", "root", "gofrendly", "gofrendly" ) # Open database connection
-    print('SQL connection established at: 127.0.0.1, root, gofrendly, gofrendly \n')
+    print('-> Connection established at: 127.0.0.1, root, gofrendly, gofrendly')
     #db.close() # disconnect from server
     return db
 
+def df_sqlquery(sqlquery):
+    db = sqlconnect()
+    print('--> SQL query begins...')
+    df = pd.read_sql_query(sqlquery, db)
+    print('--> Extraction finished ')
+    db.close()
+    print('-> SQL connection is closed ')
+    return df
+
+#%%
+"""
 def save_sqlquery(db): #Run SQL query and extract data
     print('Begin SQL query...', '\n')
     query = []
@@ -36,3 +46,4 @@ def saveone(listpd): #save the dfs
     aLinks.to_hdf("aLinks.h5", key='aLinks')
     #cLinks.to_hdf("cLinks.h5", key='cLinks')
     os.chdir('../..')
+"""

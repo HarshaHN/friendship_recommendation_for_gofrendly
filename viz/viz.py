@@ -24,3 +24,8 @@ import networkx as nx
 
 
 # %%
+#Viz
+# https://neo4j.com/developer/tools-graph-visualization/ 
+# https://neo4j.com/labs/
+# https://github.com/neo4j-contrib/neovis.js/
+# https://github.com/graphistry/pygraphistry

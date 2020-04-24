@@ -1,4 +1,37 @@
 
+-----------------------------------------------------------------------------------------
+EDA
+----------
+
+main['city'].value_counts()
+Stockholm       14948 <<
+Göteborg         9160
+Malmö            5388
+Uppsala          3342
+Örebro           2356
+
+-----------------------------------------------------------------------------------------
+C Model
+-----------
+                precision    recall  f1-score   support
+
+        Link       0.88      0.47      0.61        15
+     No-Link       0.43      0.86      0.57         7
+
+    accuracy                           0.59        22
+   macro avg       0.65      0.66      0.59        22
+weighted avg       0.73      0.59      0.60        22
+
+confusion matrix = [[7, 8],
+                    [1, 6]]
+
+plus = 53 (32 mutual frds, 21 activity friends)
+minus = 53 (8 blocked, 214 seen but not added as frd)
+Total = 385 users, 106 samples.
+
+-----------------------------------------------------------------------------------------
+SBERT 96 demo
+-------------
 Matches for user_id: 669 with story: 
  I would like to meet for AW, dining, walking and exercise. Hope to hear from you! ? ️? 
 

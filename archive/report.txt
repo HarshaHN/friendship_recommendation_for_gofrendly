@@ -1,6 +1,0 @@
-
-
-Data imbalance in the case of classifcaiton model.
-techniques such until smote, lib: imblearn. data duplication.
-url:https://towardsdatascience.com/comparing-different-classification-machine-learning-models-for-an-imbalanced-dataset-fdae1af3677f
-https://machinelearningmastery.com/random-oversampling-and-undersampling-for-imbalanced-classification/
