@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 """ Exploratory Data Analysis 
 # Perform EDA from pandas
 # https://medium.com/datadriveninvestor/introduction-to-exploratory-data-analysis-682eb64063ff
+https://towardsdatascience.com/a-starter-pack-to-exploratory-data-analysis-with-python-pandas-seaborn-and-scikit-learn-a77889485baf
+
 
 'in' : "SELECT user_id, iAm, meetFor, birthday, marital, children FROM user_details \
 INNER JOIN users ON user_details.user_id=users.id",

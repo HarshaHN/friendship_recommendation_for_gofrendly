@@ -56,5 +56,12 @@ del a, b, mf, af, bf, vnf, uf
 #%% 
 """ Classification model """
 
+"""
+def cos_sim(emb1, emb2):
+    import scipy
+    cos_dist = scipy.spatial.distance.cdist(emb1, emb2, "cosine")
+    return cos_dist
+"""
+
 # %%
 
