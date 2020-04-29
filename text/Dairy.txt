@@ -20,10 +20,16 @@ a. GCP translate API, train c-model, benchmark the results.
 b. Improve the performance of c-model and with final results derive conclusions.
 c. Begin with GNN with first priority to implement the pipeline for a small scale.
 
+progress:
+Mon: code for delta(a,b)
+Tue: code completion for delta(a,b), consolidation of links, df prepare, delta bugfixes.
+Wed: c-model, eval(smote), pred-scores, pipeline, eval, gcp api, gcn.
+Thu: 
+Fri:
+
 Schedule:
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
 #==========================================================================================
-
 
 #==========================================================================================
 Decision: consider option b, it may cost up to 100-200$ and move ahead.

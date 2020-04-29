@@ -131,72 +131,106 @@ print("--- %s seconds ---" % (time.time() - start_time))
 #========================================================================
 
 #%%
-""" Friendship links """
-import pandas as pd
-
-fLinks = pd.read_hdf("./data/raw/fLinks.h5", key='fLinks')
-fList = fLinks.groupby(['user_id'])['friend_id'].apply(list)
-fList.to_hdf('./data/vars/fLinks.h5', key='fList')
-#fList = pd.read_hdf("./data/vars/fLinks.h5", key='fList')
-
-def getfriends(friends):
-    pairs = []
-    for user, frds in friends.items():
-        for f in frds:
-            if (f, user) not in pairs:
-                if f in friends.loc[:]:
-                    if user in friends.loc[f]:
-                        pairs.append((user, f))
-    return pairs
-
-fList = pd.read_hdf('./data/vars/fLinks.h5', key='fList')
-pairs = getfriends(fList)
-fpairs = pd.Series(pairs)
-fpairs.to_hdf('./data/vars/fLinks.h5', key='fpairs')
-#fpairs = pd.read_hdf("./data/vars/fLinks.h5", key='fpairs')
-#fLinks: fList, fpairs,fLinks
-
-#%%
-""" Activity links """
-import pandas as pd
-
-aLinks = pd.read_hdf('./data/raw/aLinks.h5', key='aLinks')
-aList = aLinks.groupby(['activity_id'])['user_id'].apply(list)
-aList.to_hdf('./data/vars/aLinks.h5', key='aList')
-
-#========================================================================
-#%%
-mf = pd.read_hdf("./data/raw/cmodel.h5", key='mf')
+""" C-Model for 300 users """
 user_emb = pd.read_hdf('./data/vars/one.h5', key='emb')
 ids = list(user_emb['user_id'])
-subfp =[]
-for a in mf.iteritems():
-    if (a[1][0] in ids) & (a[1][1] in ids):
-        subfp.append(a[1])
 
-del a, mf, ids
+def rel(selids, setpool):
+    temp = set()
+    for a,b in setpool:
+        if (a in selids) and (b in selids):
+            temp.add((a,b))
+    return temp
 
-#Save the vars
-import pickle
-filename = './data/vars/classvars.pickle'
-with open(filename, 'wb') as f:
-    pickle.dump([user_emb, subfp], f)
+am = rel(ids, asm) #8 *4 = 32
+bm = rel(ids, bsm) #214 *2 = 428 
+#cm = # *1
+m = (am | bm)
 
-del f, filename
+#ap *3
+bp = rel(ids, bsp) - m #32 *2 = 64
+cp = rel(ids, csp) - m #21 *1 = 21
+p = (bp | cp)
+
+#all = list(itertools.combinations(ids, 2))
+#new = all - p - m 
+
+del bsp, csp, asm, bsm
+
+#%%
+""" More data processing"""
+one = list(p); zero = list(m)
+
+from sklearn.model_selection import train_test_split
+size = len(one)
+x_train, x_test, y_train, y_test = train_test_split(one + zero[:size], [1]*size + [0]*size, test_size=0.2, random_state=1)
+#x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=1) 
+
+emb = user_emb[['user_id', 'emb']]
+emb.set_index('user_id', inplace = True)
+
+
+def feature(x_in, emb):
+    x = list()
+    for a,b in x_in:
+        #d = (emb.loc[a, 'emb'], emb.loc[b, 'emb'])
+        d = emb.loc[a, 'emb'].tolist() + emb.loc[b, 'emb'].tolist()
+        x.append(d)
+        #break
+    return x
+        
+xf_train = feature(x_train, emb)
+xf_test = feature(x_test, emb)
+
+#x_train = x_train*2; y_train = y_train*2;
+
+"""
+#SMOTE
+# https://towardsdatascience.com/comparing-different-classification-machine-learning-models-for-an-imbalanced-dataset-fdae1af3677f
+# https://machinelearningmastery.com/random-oversampling-and-undersampling-for-imbalanced-classification/
+
+from imblearn.over_sampling import SMOTE
+import numpy as np
+sm = SMOTE(random_state=12)
+x_train_res, y_train_res = sm.fit_sample(X_train, Y_train)
+print (Y_train.value_counts() , np.bincount(y_train_res))
+Output: 
+#previous distribution of majority and minority classes
+0    6895
+1     105
+#After SMOTE, distirbution of majority and minority classes
+0    6895
+1    6895
+"""
 
 #%% 
 """ 
 Build, train and benchmark a classifier model 
 
 """
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
+model_GB = GradientBoostingClassifier(n_estimators=50)
+model_GB.fit(xf_train, y_train)
+y_pred = model_GB.predict(xf_test)
+target_names = ['Link', 'No-Link']
+print(classification_report(y_test, y_pred.tolist(), target_names=target_names))
+confusion_matrix(y_test, y_pred.tolist())
+
+
+# %%
+#Save the vars
 import pickle
 filename = './data/vars/classvars.pickle'
+with open(filename, 'wb') as f:
+    pickle.dump([user_emb, subfp], f)
+
 with open(filename, 'rb') as f:
     user_emb, subfp = pickle.load(f)
 
-
-
-
+del f, filename
 
 #%%
 def clearvars():
@@ -215,6 +249,7 @@ op.loadone() #load the dfs
 # %%
 #Evaluation
 import func.eval as eval
+import numpy as np
 
 #auroc
 true = np.array([0, 0, 1, 1])

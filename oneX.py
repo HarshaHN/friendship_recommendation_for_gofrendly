@@ -1,268 +1,305 @@
-"""
-Date: 24 Feb 2020
-Author: Harsha harshahn@kth.se
-Friendship recommendation engine using deep neural network (Social Network Analysis) as a part of Master thesis
-"""
-
-# %%
-"""import libraries"""
-#def importlibs():
-    # Tools
-import os
-import numpy as np
-import pandas as pd
-#import networkx as nx
-import time
-import func.op as op
-import func.sql as opsql
-    # ML libraries
 
 #%%
-"""SQL connect and query"""
+import pandas as pd
 import pymysql
 import func.sql as opsql
-db = opsql.sqlconnect()
-opsql.save_sqlquery(db)
 
-# %%
-"""Data load"""
-uNodes = op.loadone() #load the dfs
-[uNodes, fLinks, aNodes, aLinks] = op.loadone()
-
-#%%
-"""a. My story profile match using BERT """
-#a. Lang translation to english {German, Swedish, Norwegian} 
-stories = pd.concat([uNodes['user_id'], uNodes['myStory']], axis=1)
-#stories.columns = ['user_id', 'story']
-stories = op.removenull(stories)
-stories.to_hdf("./data/vars/stories.h5", key='stories') #save them
+# For 'city = Göteborg', get [ user_id, stories, iam, meetFor, birthday, marital, children, lat, lng]
+# df = df_sqlquery(query)
+query = {
+    '01' : "SELECT user_id, myStory, iAm, meetFor, birthday, marital, children, lat, lng FROM user_details a\
+            INNER JOIN users b ON (a.user_id=b.id) WHERE a.city = \"Stockholm\"",
+    }
+df = opsql.df_sqlquery(query['01'])
+del query 
+df.to_hdf("./data/raw/dproc.h5", key='01')
+#------------------------------------------------------------------------------------
 
 #%%
-from googletrans import Translator
-t = Translator()
-t.translate("mitt namn").text
+df = pd.read_hdf("./data/raw/dproc.h5", key='01')
+# [ user_id, myStory, values(iAm, meetFor, marital, has child, age, lat, lng) in range(0,1) ]
+# from ['user_id', 'myStory', 'iAm', 'meetFor', 'age', 'marital', 'children', 'lat', 'lng']
 
-# %%
-import pandas as pd
-import func.op as op
-import time
-stories = pd.read_hdf("./data/vars/stories.h5", key='stories')
-stories.columns = ['user_id', 'myStory']
-start_time = time.time()
-substories = stories[:400] # take out a sample
-substories['story'] = op.trans(substories) # translate
-substories = op.removenull(substories)
-print("--- %s seconds ---" % (time.time() - start_time))
-substories = substories.reset_index(drop=True)
-substories.to_hdf("./data/vars/stories.h5", key='substories') #save them
-del substories['myStory']
+df.set_index('user_id', inplace = True)
 
-#%%
-substories.columns = ['user_id', 'myStory']
-substories = op.removenull(substories)
-substories.columns = ['user_id', 'story']
-substories = substories.reset_index(drop=True)
-#substories.to_hdf("./data/vars/stories.h5", key='short')
-substories = pd.read_hdf("./data/vars/stories.h5", key='short') #load them
+#cleanse myStory
+def cleanse(text):
+    #try:
+    if (text == '') or (text == None): #.isnull()
+        text = -1
+    else:
+        import re
+        import emoji #conda install -c conda-forge emoji
+        text = text.replace("\n", ". ") #remove breaks
+        text = emoji.get_emoji_regexp().sub(u'',text) #remove emojis
+        r = re.compile(r'([.,/#!?$%^&*;:{}=_`~()-])[.,/#!?$%^&*;:{}=_`~()-]+')
+        text = r.sub(r'\1', text) #multiple punctuations
+        if len(text) < 10: 
+            text = -1 #short texts
+    return text
 
-# %%
-#Sentence Embeddings using BERT / RoBERTa / XLNet https://pypi.org/project/sentence-transformers/
+df['myStory'] = df['myStory'].apply(lambda x: cleanse(x))
+
+#'iAm', 'meetFor' to set()
+df['iAm'] = df['iAm'].apply(lambda x: set(x.split(',')) if x != None else set())
+df['meetFor'] = df['meetFor'].apply(lambda x: set(x.split(',')) if x != None else set())
+
+#'birthday' to age
+df['age'] = df['birthday'].apply(lambda x: int((x.today() - x).days/365))
+df.drop(columns='birthday', inplace = True)
+
+# has children, marital
+df['marital'].fillna(-1, inplace=True)
+df['children'].fillna(-1, inplace=True)
+#df['children'] = df['children'].apply(lambda x: 1 if (x>=0) else -1)
+
+df.to_hdf("./data/raw/dproc.h5", key='02')
+#--------------------------------------------
+#%% stories translation with GCP
+df = pd.read_hdf("./data/raw/dproc.h5", key='02')
+
+#Dummy fill-up
+
+def trans(text):
+    #if text == -1: return -1
+    #Corpus with example sentences
+    texts = [ 'A man is eating food.',
+                'A man is eating a piece of bread.',
+                'The girl is carrying a baby.',
+                'A man is riding a horse.',
+                'A woman is playing violin.',
+                'Two men pushed carts through the woods.',
+                'A man is riding a white horse on an enclosed ground.',
+                'A monkey is playing drums.',
+                'A cheetah is running behind its prey.']
+    import random
+    return texts[random.randint(0,8)]
+
+df['myStory'] = df['myStory'].apply(lambda x: trans(x) if x!=-1 else -1)
+
+#df.to_hdf("./data/raw/dproc.h5", key='03')
+#-------------------------------------------------------------------
+
+#%% Stories to S-BERT emb
+df = pd.read_hdf("./data/raw/dproc.h5", key='03')
+
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('roberta-large-nli-mean-tokens') # Load Sentence model (based on BERT) from URL
+model = SentenceTransformer('roberta-large-nli-mean-tokens') # Load Sentence model (based on BERT) 
 
-stories = list(substories['story'])
-user_id = list(substories['user_id'])
+def listup(x):
+    listx = list()
+    listx.append(x)
+    return listx
 
-"""
-# Corpus with example sentences
-stories = ['A man is eating food.',
-          'A man is eating a piece of bread.',
-          'The girl is carrying a baby.',
-          'A man is riding a horse.',
-          'A woman is playing violin.',
-          'Two men pushed carts through the woods.',
-          'A man is riding a white horse on an enclosed ground.',
-          'A monkey is playing drums.',
-          'A cheetah is running behind its prey.']
-user_id = list(range(0,len(stories)))
-"""
-
-#%%
+print("-> S-BERT embedding begins...")
+import time
 start_time = time.time()
-#create embeddings
-stories_embeddings = model.encode(stories)
-print("--- %s seconds ---" % (time.time() - start_time)) #534 sec
-story_emb = pd.DataFrame({'user_id': user_id, 'emb': stories_embeddings, 'story': stories})
-story_emb.to_hdf('./data/vars/one.h5', key='emb')
-#stories.h5: stories, substories, short
-#one.h5: emb
+df['emb'] = df['myStory'].apply(lambda x: model.encode(listup(x)) if x!=-1 else -1)
+print("-> S-BERT embedding finished.", (time.time() - start_time)) #534 sec
+
+#df['emb'] = [user_emb['emb'][0], user_emb['emb'][1]]*7474
+#df['emb'] = df['emb'].apply(lambda x: x.reshape(1,-1))
+df.drop(columns = 'myStory', inplace = True)
+
+df.to_hdf("./data/raw/dproc.h5", key='04')
+#user vectors = [ user_id, ['iAm', 'meetFor', 'marital', 'children', 'lat', 'lng', 'age', 'emb']
+#----------------------------------------------------------------------------
 
 #%%
-#create query embeddings
-user = 24; queries = [stories[user]]
-query_embeddings = model.encode(queries)
+#Consolidate all the links
+def links(ids):
 
-#Find cosine similarity
-import scipy
-start_time = time.time()
-distances = scipy.spatial.distance.cdist(query_embeddings, list(story_emb['emb']), "cosine")
-match = 6
-ind = distances.argsort()[0].tolist()#[:match]
-indx = ind[:6] + ind[-6:]
-print('Matches for user_id:', user_id[user] , 'with story: \n', queries[0], '\n')
+    import itertools
+    """ Links extraction from the network """
+    #positive samples
+    mf = pd.read_hdf("./data/raw/cmodel.h5", key='mf')
+    af = pd.read_hdf("./data/raw/cmodel.h5", key='af')
+    #negative samples
+    bf = pd.read_hdf("./data/raw/cmodel.h5", key='bf')
+    vnf = pd.read_hdf("./data/raw/cmodel.h5", key='vnf')
+    print("01 -- vars loaded!")
 
-matches = []; count = 0
-for i in indx:
-    count += 1
-    if count == match+1 :
-        print('=============================')
-        print('---Dissimilar matches here---')
-    if True: #(distances[0][i] < 0.5): 
-        matches.append(user_id[i])
-        print('Match:', i, ', user_id:', user_id[i], 'cosine_dist:', distances[0][i],', story: \n',  stories[i], '\n')
-    else: 
-        print('No other semantic matches to be found!')
+    #mf as bsp
+    bsp = set(tuple(zip(mf.user_id, mf.friend_id)))
+    #af as csp
+    af = af.groupby(['activity_id'])['user_id'].apply(list)
+    csp = set()
+    for a in af.iteritems():
+        csp.update(set(itertools.combinations(a[1], 2)))
 
-print("--- %s seconds ---" % (time.time() - start_time))
+    #bf as asm
+    asm = set(tuple(zip(bf.user_id, bf.blocked_id)))
+    #vnf as bsm
+    bsm = set(tuple(zip(vnf.user_id, vnf.seen_id)))
+    print("02 -- links compiled!")
 
-#Elastic search for scalability
-#https://xplordat.com/2019/10/28/semantics-at-scale-bert-elasticsearch/
+    del mf, af, bf, vnf
 
-#========================================================================
+    """ Links subset """
+    def sublinks(subids, allids):
+        temp = set()
+        for a,b in allids:
+            if (a in subids) and (b in subids):
+                temp.add((a,b))
+        return temp
 
-#%%
-""" C-Model for 300 users """
-user_emb = pd.read_hdf('./data/vars/one.h5', key='emb')
-ids = list(user_emb['user_id'])
+    am = sublinks(ids, asm); bm = sublinks(ids, bsm); m = (am | bm)
+    ap = sublinks(ids, bsp); cp = sublinks(ids, csp); p = (ap | cp) - m
+    print("03 -- classes created!")
 
-def rel(selids, setpool):
-    temp = set()
-    for a,b in setpool:
-        if (a in selids) and (b in selids):
-            temp.add((a,b))
-    return temp
+    del bsp, csp, asm, bsm, am, ap, cp, bm
 
-am = rel(ids, asm) #8 *4 = 32
-bm = rel(ids, bsm) #214 *2 = 428 
-#cm = # *1
-m = (am | bm)
+    #Save the vars
+    import pickle
+    filename = './data/vars/links.pickle'
+    with open(filename, 'wb') as f:
+        pickle.dump([m, p], f)  
+    del f, filename
 
-#ap *3
-bp = rel(ids, bsp) - m #32 *2 = 64
-cp = rel(ids, csp) - m #21 *1 = 21
-p = (bp | cp)
+    return [p, m]
 
-#all = list(itertools.combinations(ids, 2))
-#new = all - p - m 
-
-del bsp, csp, asm, bsm
-
-#%%
-""" More data processing"""
-one = list(p); zero = list(m)
-
-from sklearn.model_selection import train_test_split
-size = len(one)
-x_train, x_test, y_train, y_test = train_test_split(one + zero[:size], [1]*size + [0]*size, test_size=0.2, random_state=1)
-#x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.25, random_state=1) 
-
-emb = user_emb[['user_id', 'emb']]
-emb.set_index('user_id', inplace = True)
-
-
-def feature(x_in, emb):
-    x = list()
-    for a,b in x_in:
-        #d = (emb.loc[a, 'emb'], emb.loc[b, 'emb'])
-        d = emb.loc[a, 'emb'].tolist() + emb.loc[b, 'emb'].tolist()
-        x.append(d)
-        #break
-    return x
-        
-xf_train = feature(x_train, emb)
-xf_test = feature(x_test, emb)
-
-#x_train = x_train*2; y_train = y_train*2;
-
-"""
-#SMOTE
-# https://towardsdatascience.com/comparing-different-classification-machine-learning-models-for-an-imbalanced-dataset-fdae1af3677f
-# https://machinelearningmastery.com/random-oversampling-and-undersampling-for-imbalanced-classification/
-
-from imblearn.over_sampling import SMOTE
-import numpy as np
-sm = SMOTE(random_state=12)
-x_train_res, y_train_res = sm.fit_sample(X_train, Y_train)
-print (Y_train.value_counts() , np.bincount(y_train_res))
-Output: 
-#previous distribution of majority and minority classes
-0    6895
-1     105
-#After SMOTE, distirbution of majority and minority classes
-0    6895
-1    6895
-"""
+ids = list(df.index)
+[p, n] = links(ids)
 
 #%% 
-""" 
-Build, train and benchmark a classifier model 
+# delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)) equality(marital, has children), abs_diff(age, lat, lng) ] in one-hot encode
 
-"""
+import numpy as np
+from scipy.spatial import distance
+
+#df = pd.read_hdf("./data/raw/dproc.h5", key='04')
+global df, ohc_b, ohc_c, ohc_cc
+ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
+ohc_c = np.diag(np.ones(5, dtype=int)); ohc_c[-1] = np.zeros(5, dtype=int)
+ohc_cc = np.diag(np.ones(3, dtype=int))
+
+def delta(a, b):
+    vec = list()
+    global df, ohc_b, ohc_c, ohc_cc
+
+    #a. cosine_sim_sbert
+    emb1 = df.loc[a, 'emb']; emb2 = df.loc[b, 'emb']
+    if (type(emb1) or type(emb2)) == int: #len(*emb) > 1
+        cos_dist = 0.5
+    else:
+        cos_dist = 0.5 #round(distance.cdist(emb1, emb2, 'cosine')[0][0], 3)
+    vec.append(cos_dist)
+
+    #b. count(intersection(iam, meetFor)) #ohc_b
+    iAm = len((df.loc[a, 'iAm']).intersection(df.loc[b, 'iAm']))
+    meetFor = len((df.loc[a, 'meetFor']).intersection(df.loc[b, 'meetFor']))
+    vec.extend(ohc_b[iAm] + ohc_b[meetFor])
+    
+    #c. xor(marital, children) #ohc_c, ohc_cc
+    ma = int(df.loc[a, 'marital']); mb = int(df.loc[b, 'marital'])
+    marital = ohc_c[ma] if (ma == mb) else ohc_c[-1]
+    vec.extend(marital.tolist())
+
+    ca = int(df.loc[a, 'children']); cb = int(df.loc[b, 'children'])
+    if (ca or cb) == 2:
+        children = ohc_cc[cb] if cb!=2 else ohc_cc[ca] if ca!=2 else [0,1,1]
+    else: 
+        children = ohc_cc[ca] if (ca == cb) else [0,0,0]
+    vec.extend(children)
+    #vec.extend(marital.tolist() + children)
+
+    #d. abs(age, lat, lng)
+    age = abs(df.loc[a, 'age'] - df.loc[b, 'age'])/10
+    lat = abs(df.loc[a, 'lat'] - df.loc[b, 'lat'])*10
+    lng = abs(df.loc[a, 'lng'] - df.loc[b, 'lng'])*10
+    vec.extend([age, round(lat, 3), round(lng, 3)])
+    return vec
+
+#vec = delta(458, 647)
+#-----------------------------------------------------------------
+
+#%%
+""" Perform delta(a,b) for positive and negative samples """
+
+df = pd.read_hdf("./data/raw/dproc.h5", key='04')
+
+import pickle
+filename = './data/vars/links.pickle'
+with open(filename, 'rb') as f:
+    [m, p] = pickle.load(f)
+pos = list(p); neg = list(m)
+del filename, f, p, m
+
+# Links to delta 'in'
+df_pos = pd.DataFrame({'links': pos})#.head()
+df_neg = pd.DataFrame({'links': neg})#.head()
+
+df_pos['in'] = df_pos['links'].apply(lambda x: delta(*x))
+df_pos['out'] = [1]*len(df_pos)
+print('--> Finished for positive links')
+df_neg['in'] = df_neg['links'].apply(lambda x: delta(*x))
+df_neg['out'] = [0]*len(df_neg)
+print('--> Finished for negative links')
+
+del ohc_b, ohc_c, ohc_cc, pos, neg
+
+## SMOTE ##
+#posX = df_pos['in']; posY = df_pos['out']
+#negX = df_neg['in']; negY = df_neg['out']
+# X = posX + negX # Y = posY + negY  
+
+df_links = pd.concat([df_pos, df_neg], ignore_index=True)
+#X = df_links['in]; Y = df_links['out']
+
+df_links.to_hdf("./data/raw/dproc.h5", key='05')
+del df_pos, df_neg
+#--------------------------------------------
+
+#%%
+""" Classification model """
+# Build and train a DNN classifier model using the delta vectors.
+
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+
+#df_links = pd.read_hdf("./data/raw/dproc.h5", key='05')
+# df_pos = df_links[df_links['out']==0]; df_neg = df_links[df_links['out']==0];
+#X = df_links['in']; Y = df_links['out']
+
+trainX, testX, trainY, testY = train_test_split(list(df_links['in']), list(df_links['out']), test_size=0.2, random_state=7)
+trainX, valX, trainY, valY = train_test_split(trainX, trainY, test_size=0.25, random_state=7)
+
+model_GB = GradientBoostingClassifier(n_estimators=10)
+print('-> Training begins with sample sizes: link =', sum(df_links['out']==1), 'No-link =', sum(df_links['out']==0))
+model_GB.fit(trainX, trainY)
+predY = model_GB.predict(valX)
+probY = model_GB.predict_proba(valX)
+
+# df.to_hdf("./data/raw/dproc.h5", key='06')
+#--------------------------------------------
+
+#%%
+# Evaluation of recsys
+import numpy as np
+import func.eval as eval
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 
-model_GB = GradientBoostingClassifier(n_estimators=50)
-model_GB.fit(xf_train, y_train)
-y_pred = model_GB.predict(xf_test)
-target_names = ['Link', 'No-Link']
-print(classification_report(y_test, y_pred.tolist(), target_names=target_names))
-confusion_matrix(y_test, y_pred.tolist())
+#0. Confusion matrix
+print(classification_report(valY, predY.tolist(), target_names=['No-Link', 'Link']))
+confusion_matrix(valY, predY.tolist())
 
+"""1. Metrics of Relevance"""
+#1. auroc
+"""a. Area under ROC """
+def auroc(true, score):
+    from sklearn.metrics import roc_auc_score
+    res = round(roc_auc_score(true, score),3)
+    print("AUROC has been computed and the value is ", res)
+    return res
 
-# %%
-#Save the vars
-import pickle
-filename = './data/vars/classvars.pickle'
-with open(filename, 'wb') as f:
-    pickle.dump([user_emb, subfp], f)
+auroc = auroc(valY, probY[:,1])
 
-with open(filename, 'rb') as f:
-    user_emb, subfp = pickle.load(f)
-
-del f, filename
-
-#%%
-def clearvars():
-    import sys
-    sys.modules[__name__].__dict__.clear()
-
-
-
-# %%
-"""Data Analysis"""
-op.loadone() #load the dfs
-#Build the Heterogenous Social Network Graph
-#G = nx.Graph()
-
-
-# %%
-#Evaluation
-import func.eval as eval
-import numpy as np
-
-#auroc
-true = np.array([0, 0, 1, 1])
-score = np.array([0.1, 0.4, 0.35, 0.8])
-auroc = eval.auroc(true, score)
-
-#mar@k and map@k
-true = [ 0, 0, 1, 1]
-pred = [ 1, 0, 0, 1]
+#2. mar@k and map@k
 k = 10; query = 1
-map_k, mar_k = eval.meanavg(query, true, score)
+[map_k, mar_k] = eval.meanavg(1, valY, predY)
 
-#hitrate
+#3. hitrate
 q = 14
 frds = {}
 frds[14] = (15, 16, 17)
@@ -270,23 +307,13 @@ rec = (12, 13, 14, 15, 16)
 hit = eval.hitrate(frds[q], rec)
 mrr = eval.mrr(frds[q], rec)
 
+"""2. Metrics of Serendipity"""
+"""3. Metrics of User Hits"""
+"""4. Rank aware metric"""
 
-# %%
-#User interaction and display
-
-
-# %%
-#Training
-
-# %%
-#save and commit
-
-# %%
-#main
+# df.to_hdf("./data/raw/dproc.h5", key='07')
+#--------------------------------------------
 
 
-# %%
-# Machine Learning based
-
-# %%
-# Deep Learning based
+#%%
+# Benchmark the results

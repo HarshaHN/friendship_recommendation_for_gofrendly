@@ -32,7 +32,7 @@ def auroc(true, score):
 def meanavg(query, true, score):
     from sklearn.metrics import precision_score, recall_score
     precision = []; recall = []; res = []
-    for q in query:
+    for q in range(query):
         precision.append(precision_score(true[q], score[q]))
         recall.append(recall_score(true[q], score[q]))
 

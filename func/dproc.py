@@ -102,66 +102,8 @@ print("-> S-BERT embedding finished.", (time.time() - start_time)) #534 sec
 df.drop(columns = 'myStory', inplace = True)
 
 df.to_hdf("./data/raw/dproc.h5", key='04')
-#user vectors = [ user_id, sbert_emb, iam, meetFor, marital, children, age, lat, lng ]
-#test.to_hdf("./data/raw/dproc.h5", key='test')
+#user vectors = [ user_id, ['iAm', 'meetFor', 'marital', 'children', 'lat', 'lng', 'age', 'emb']
 #----------------------------------------------------------------------------
-
-#%% 
-# df = pd.read_hdf("./data/raw/dproc.h5", key='04')
-# delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)/3) xor(marital, has children), abs_diff(age, lat, lng) ]
-# one-hot encode
-
-import numpy as np
-from scipy.spatial import distance
-
-global df, ohc_b, ohc_c, ohc_cc
-ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
-ohc_c = np.diag(np.ones(5)); ohc_c[-1] = np.zeros(5)
-ohc_cc = np.diag(np.ones(3))
-
-def delta(a, b):
-    vec = list()
-    global df, ohc_b, ohc_c, ohc_cc
-
-    #a. cosine_sim_sbert
-    emb1 = df.loc[a, 'emb']; emb2 = df.loc[b, 'emb']
-    if (type(emb1) or type(emb2)) == int: #len(*emb) > 1
-        print('1: ', type(emb1),'2: ', type(emb2))
-        cos_dist = [0.5]
-    else:
-        cos_dist = distance.cdist(df.loc[a, 'emb'], df.loc[b, 'emb'], 'cosine').tolist()
-    vec.append(*cos_dist)
-
-    #b. count(intersection(iam, meetFor))
-    #ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
-    iAm = len((df.loc[a, 'iAm']).intersection(df.loc[b, 'iAm']))
-    meetFor = len((df.loc[a, 'meetFor']).intersection(df.loc[b, 'meetFor']))
-    vec += [ohc_b[iAm]] + [ohc_b[meetFor]]  
-    
-    #c. xor(marital, children)
-    #ohc_c = np.diag(np.ones(5)); ohc_c[-1] = np.zeros(5)
-    ma = int(df.loc[a, 'marital']); mb = int(df.loc[b, 'marital'])
-    marital = ohc_c[ma] if (ma == mb) else ohc_c[-1]
-
-    #ohc_cc = np.diag(np.ones(3))
-    ca = int(df.loc[a, 'children']); cb = int(df.loc[b, 'children'])
-    if (ca or cb) == 2:
-        children = ohc_cc[cb] if cb!=2 else ohc_cc[ca] if ca!=2 else [0,1,1]
-    else: 
-        children = ohc_cc[ca] if (ca == cb) else [0,0,0]
-    vec += [marital.tolist()] + [children]
-
-    #d. eucld(age, lat, lng)
-    age = abs(df.loc[a, 'age'] - df.loc[b, 'age'])#/10
-    lat = abs(df.loc[a, 'lat'] - df.loc[b, 'lat'])
-    lng = abs(df.loc[a, 'lng'] - df.loc[b, 'lng'])
-    vec += [[age, lat, lng]]
-    
-    return vec
-
-vec = delta(458, 647)
-
-del ohc_b, ohc_c, ohc_cc
 
 #%%
 #Consolidate all the links
@@ -175,6 +117,7 @@ def links(ids):
     #negative samples
     bf = pd.read_hdf("./data/raw/cmodel.h5", key='bf')
     vnf = pd.read_hdf("./data/raw/cmodel.h5", key='vnf')
+    print("01 -- vars loaded!")
 
     #mf as bsp
     bsp = set(tuple(zip(mf.user_id, mf.friend_id)))
@@ -188,6 +131,7 @@ def links(ids):
     asm = set(tuple(zip(bf.user_id, bf.blocked_id)))
     #vnf as bsm
     bsm = set(tuple(zip(vnf.user_id, vnf.seen_id)))
+    print("02 -- links compiled!")
 
     del mf, af, bf, vnf
 
@@ -199,75 +143,150 @@ def links(ids):
                 temp.add((a,b))
         return temp
 
-    m = (sublinks(ids, asm) | sublinks(ids, bsm))
-    p = (sublinks(ids, bsp) | sublinks(ids, csp)) - m
+    am = sublinks(ids, asm); bm = sublinks(ids, bsm); m = (am | bm)
+    ap = sublinks(ids, bsp); cp = sublinks(ids, csp); p = (ap | cp) - m
+    print("03 -- classes created!")
 
-    del bsp, csp, asm, bsm
+    del bsp, csp, asm, bsm, am, ap, cp, bm
+
+    #Save the vars
+    import pickle
+    filename = './data/vars/links.pickle'
+    with open(filename, 'wb') as f:
+        pickle.dump([m, p], f)  
+    del f, filename
 
     return [p, m]
 
 ids = list(df.index)
 [p, n] = links(ids)
-# posX = list(); posY = list();
-# for (a,b) in p:
-#   posX.append(delta(a,b))
-#   posY.append(1) #perhaps a one-hot code label
-# for (a,b) in n:
-#   negX.append(delta(a,b))
-#   negY.append(0) #perhaps a one-hot code label
-# 
-# SMOTE if needed
-# X = posX + negX
-# Y = posY + negY  
 
-# df.to_hdf("./data/raw/dproc.h5", key='05')
+#%% 
+# delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)) equality(marital, has children), abs_diff(age, lat, lng) ] in one-hot encode
+
+import numpy as np
+from scipy.spatial import distance
+
+#df = pd.read_hdf("./data/raw/dproc.h5", key='04')
+global df, ohc_b, ohc_c, ohc_cc
+ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
+ohc_c = np.diag(np.ones(5, dtype=int)); ohc_c[-1] = np.zeros(5, dtype=int)
+ohc_cc = np.diag(np.ones(3, dtype=int))
+
+def delta(a, b):
+    vec = list()
+    global df, ohc_b, ohc_c, ohc_cc
+
+    #a. cosine_sim_sbert
+    emb1 = df.loc[a, 'emb']; emb2 = df.loc[b, 'emb']
+    if (type(emb1) or type(emb2)) == int: #len(*emb) > 1
+        print('1: ', type(emb1),'2: ', type(emb2))
+        cos_dist = 0.5
+    else:
+        cos_dist = round(distance.cdist(emb1, emb2, 'cosine')[0][0], 3)
+    print()
+    vec.append(cos_dist)
+
+    #b. count(intersection(iam, meetFor)) #ohc_b
+    iAm = len((df.loc[a, 'iAm']).intersection(df.loc[b, 'iAm']))
+    meetFor = len((df.loc[a, 'meetFor']).intersection(df.loc[b, 'meetFor']))
+    vec.extend(ohc_b[iAm] + ohc_b[meetFor])
+    
+    #c. xor(marital, children) #ohc_c, ohc_cc
+    ma = int(df.loc[a, 'marital']); mb = int(df.loc[b, 'marital'])
+    marital = ohc_c[ma] if (ma == mb) else ohc_c[-1]
+
+    ca = int(df.loc[a, 'children']); cb = int(df.loc[b, 'children'])
+    if (ca or cb) == 2:
+        children = ohc_cc[cb] if cb!=2 else ohc_cc[ca] if ca!=2 else [0,1,1]
+    else: 
+        children = ohc_cc[ca] if (ca == cb) else [0,0,0]
+    vec.extend(marital.tolist() + children)
+
+    #d. abs(age, lat, lng)
+    age = abs(df.loc[a, 'age'] - df.loc[b, 'age'])/10
+    lat = abs(df.loc[a, 'lat'] - df.loc[b, 'lat'])*10
+    lng = abs(df.loc[a, 'lng'] - df.loc[b, 'lng'])*10
+    vec.extend([age, round(lat, 3), round(lng, 3)])
+    return vec
+
+#vec = delta(458, 647)
+#-----------------------------------------------------------------
+
+#%%
+""" Perform delta(a,b) for positive and negative samples """
+df = pd.read_hdf("./data/raw/dproc.h5", key='04')
+
+import pickle
+filename = './data/vars/links.pickle'
+with open(filename, 'rb') as f:
+    [m, p] = pickle.load(f)
+
+pos = list(p); neg = list(m)
+
+# Links to delta 'in'
+df_pos = pd.DataFrame({'links': pos}).head()
+df_neg = pd.DataFrame({'links': neg}).head()
+
+df_pos['in'] = df_pos['links'].apply(lambda x: delta(*x))
+df_pos['out'] = [1]*len(df_pos)
+df_neg['in'] = df_neg['links'].apply(lambda x: delta(*x))
+df_neg['out'] = [0]*len(df_neg)
+
+## SMOTE ##
+#posX = df_pos['in']; posY = df_pos['out']
+#negX = df_neg['in']; negY = df_neg['out']
+# X = posX + negX # Y = posY + negY  
+
+df_links = pd.concat([df_pos, df_neg], ignore_index=True)
+#X = df_links['in]; Y = df_links['out']
+
+#del ohc_b, ohc_c, ohc_cc
+#df_links.to_hdf("./data/raw/dproc.h5", key='05')
 #--------------------------------------------
-# %%
 
+#%%
+""" Classification model """
+# Build and train a DNN classifier model using the delta vectors.
+
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+
+df_links = pd.read_hdf("./data/raw/dproc.h5", key='05')
+X = df_links['in']; Y = df_links['out']
+
+trainX, testX, trainY, trainY = train_test_split(X, Y, test_size=0.2, random_state=1)
+trainX, valX, trainY, valY = train_test_split(trainX, trainY, test_size=0.25, random_state=1)
+
+model_GB = GradientBoostingClassifier(n_estimators=10)
+model_GB.fit(trainX, trainY)
+predY = model_GB.predict(valX)
 
 # df.to_hdf("./data/raw/dproc.h5", key='06')
 #--------------------------------------------
 
 #%%
-
-""" Classification model """
-
-# Build and train a DNN classifier model using the delta vectors.
-
-"""
-from sklearn.ensemble import GradientBoostingClassifier
+# Evaluation of recsys
+import numpy as np
+import func.eval as eval
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 
-model_GB = GradientBoostingClassifier(n_estimators=50)
-model_GB.fit(xf_train, y_train)
-y_pred = model_GB.predict(xf_test)
-target_names = ['Link', 'No-Link']
-print(classification_report(y_test, y_pred.tolist(), target_names=target_names))
-confusion_matrix(y_test, y_pred.tolist())
-"""
+#0. Confusion matrix
+print(classification_report(valY, predY.tolist(), target_names=['Link', 'No-Link']))
+confusion_matrix(valY, predY.tolist())
 
-# df.to_hdf("./data/raw/dproc.h5", key='07')
-#--------------------------------------------
+"""1. Metrics of Relevance"""
+#1. auroc
+auroc = eval.auroc(valY, scoreY)
 
-#%%
-# Benchmark the results
-"""
-import func.eval as eval
-import numpy as np
-
-#auroc
-true = np.array([0, 0, 1, 1])
-score = np.array([0.1, 0.4, 0.35, 0.8])
-auroc = eval.auroc(true, score)
-
-#mar@k and map@k
+#2. mar@k and map@k
 true = [ 0, 0, 1, 1]
 pred = [ 1, 0, 0, 1]
 k = 10; query = 1
 map_k, mar_k = eval.meanavg(query, true, score)
 
-#hitrate
+#3. hitrate
 q = 14
 frds = {}
 frds[14] = (15, 16, 17)
@@ -275,6 +294,13 @@ rec = (12, 13, 14, 15, 16)
 hit = eval.hitrate(frds[q], rec)
 mrr = eval.mrr(frds[q], rec)
 
-# df.to_hdf("./data/raw/dproc.h5", key='08')
+"""2. Metrics of Serendipity"""
+"""3. Metrics of User Hits"""
+"""4. Rank aware metric"""
+
+# df.to_hdf("./data/raw/dproc.h5", key='07')
 #--------------------------------------------
-"""
+
+
+#%%
+# Benchmark the results
