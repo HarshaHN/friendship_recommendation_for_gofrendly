@@ -23,14 +23,12 @@ c. Begin with GNN with first priority to implement the pipeline for a small scal
 progress:
 Mon: code for delta(a,b)
 Tue: code completion for delta(a,b), consolidation of links, df prepare, delta bugfixes.
-Wed: c-model, eval(smote), pred-scores, pipeline, eval, gcp api, gcn.
-Thu: 
-Fri:
+Wed: pipeline development
+Fri: c-model, eval(smote), pipeline, eval, gcp api, gcn.
 
 Schedule:
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
 #==========================================================================================
-
 #==========================================================================================
 Decision: consider option b, it may cost up to 100-200$ and move ahead.
 In Progress:
@@ -102,10 +100,3 @@ Open interactions: Discuss and debate. Active on social media.
 Action plan: Act locally and take leadership role in a club I personally value.
 -----------------------------------------------------------------------------------------
 
-Dear ,
-
-
-
-
-Med Vänliga Hälsningar,
-Harsha

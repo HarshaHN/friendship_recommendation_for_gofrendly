@@ -1,23 +1,24 @@
 
-#%%
+#%%-----------------------------------
+""" User info extraction from sql """
 import pandas as pd
 import pymysql
 import func.sql as opsql
 
 # For 'city = Göteborg', get [ user_id, stories, iam, meetFor, birthday, marital, children, lat, lng]
-# df = df_sqlquery(query)
 query = {
     '01' : "SELECT user_id, myStory, iAm, meetFor, birthday, marital, children, lat, lng FROM user_details a\
             INNER JOIN users b ON (a.user_id=b.id) WHERE a.city = \"Stockholm\"",
     }
 df = opsql.df_sqlquery(query['01'])
 del query 
-df.to_hdf("./data/raw/dproc.h5", key='01')
-#------------------------------------------------------------------------------------
+#df.to_hdf("./data/raw/dproc.h5", key='01')
 
-#%%
+#%%-----------------------------------
+""" Data pre-processing - 01 
+01. Data cleanse and imputation"""
 df = pd.read_hdf("./data/raw/dproc.h5", key='01')
-# [ user_id, myStory, values(iAm, meetFor, marital, has child, age, lat, lng) in range(0,1) ]
+# [ user_id, myStory, values(iAm, meetFor, marital, has child, age, lat, lng) ]
 # from ['user_id', 'myStory', 'iAm', 'meetFor', 'age', 'marital', 'children', 'lat', 'lng']
 
 df.set_index('user_id', inplace = True)
@@ -51,15 +52,18 @@ df.drop(columns='birthday', inplace = True)
 # has children, marital
 df['marital'].fillna(-1, inplace=True)
 df['children'].fillna(-1, inplace=True)
-#df['children'] = df['children'].apply(lambda x: 1 if (x>=0) else -1)
 
-df.to_hdf("./data/raw/dproc.h5", key='02')
-#--------------------------------------------
-#%% stories translation with GCP
+#df.to_hdf("./data/raw/dproc.h5", key='02')
+
+
+
+#%% -----------------------------------
+""" Data pre-processing - 02 
+02. stories translation with GCP """
+
 df = pd.read_hdf("./data/raw/dproc.h5", key='02')
 
 #Dummy fill-up
-
 def trans(text):
     #if text == -1: return -1
     #Corpus with example sentences
@@ -76,15 +80,19 @@ def trans(text):
     return texts[random.randint(0,8)]
 
 df['myStory'] = df['myStory'].apply(lambda x: trans(x) if x!=-1 else -1)
-
 #df.to_hdf("./data/raw/dproc.h5", key='03')
-#-------------------------------------------------------------------
 
-#%% Stories to S-BERT emb
+
+
+
+#%% -----------------------------------
+""" Data pre-processing - 03 
+03. Stories to S-BERT emb """
+
 df = pd.read_hdf("./data/raw/dproc.h5", key='03')
 
 from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('roberta-large-nli-mean-tokens') # Load Sentence model (based on BERT) 
+sbertmodel = SentenceTransformer('roberta-large-nli-mean-tokens') # Load Sentence model (based on BERT) 
 
 def listup(x):
     listx = list()
@@ -94,19 +102,20 @@ def listup(x):
 print("-> S-BERT embedding begins...")
 import time
 start_time = time.time()
-df['emb'] = df['myStory'].apply(lambda x: model.encode(listup(x)) if x!=-1 else -1)
+df['emb'] = df['myStory'].apply(lambda x: sbertmodel.encode(listup(x)) if x!=-1 else -1)
 print("-> S-BERT embedding finished.", (time.time() - start_time)) #534 sec
 
 #df['emb'] = [user_emb['emb'][0], user_emb['emb'][1]]*7474
 #df['emb'] = df['emb'].apply(lambda x: x.reshape(1,-1))
 df.drop(columns = 'myStory', inplace = True)
 
-df.to_hdf("./data/raw/dproc.h5", key='04')
-#user vectors = [ user_id, ['iAm', 'meetFor', 'marital', 'children', 'lat', 'lng', 'age', 'emb']
-#----------------------------------------------------------------------------
+#df.to_hdf("./data/raw/dproc.h5", key='04')
+#user vectors = [ user_id, 'iAm', 'meetFor', 'marital', 'children', 'lat', 'lng', 'age', 'emb']
 
-#%%
-#Consolidate all the links
+#%% -----------------------------------
+""" Data pre-processing - 04 
+04. Consolidate all the links """
+
 def links(ids):
 
     import itertools
@@ -158,16 +167,19 @@ def links(ids):
 
     return [p, m]
 
+df = pd.read_hdf("./data/raw/dproc.h5", key='04')
 ids = list(df.index)
 [p, n] = links(ids)
 
-#%% 
-# delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)) equality(marital, has children), abs_diff(age, lat, lng) ] in one-hot encode
+#%% -----------------------------------------
+""" Data pre-processing - 05 
+05. Compute delta of two users """
+# delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)) equality(marital, has children), abs_diff(age, lat, lng) ]
 
 import numpy as np
 from scipy.spatial import distance
 
-#df = pd.read_hdf("./data/raw/dproc.h5", key='04')
+df = pd.read_hdf("./data/raw/dproc.h5", key='04')
 global df, ohc_b, ohc_c, ohc_cc
 ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
 ohc_c = np.diag(np.ones(5, dtype=int)); ohc_c[-1] = np.zeros(5, dtype=int)
@@ -201,7 +213,6 @@ def delta(a, b):
     else: 
         children = ohc_cc[ca] if (ca == cb) else [0,0,0]
     vec.extend(children)
-    #vec.extend(marital.tolist() + children)
 
     #d. abs(age, lat, lng)
     age = abs(df.loc[a, 'age'] - df.loc[b, 'age'])/10
@@ -211,23 +222,18 @@ def delta(a, b):
     return vec
 
 #vec = delta(458, 647)
-#-----------------------------------------------------------------
 
-#%%
-""" Perform delta(a,b) for positive and negative samples """
-
-df = pd.read_hdf("./data/raw/dproc.h5", key='04')
-
-import pickle
-filename = './data/vars/links.pickle'
-with open(filename, 'rb') as f:
-    [m, p] = pickle.load(f)
-pos = list(p); neg = list(m)
-del filename, f, p, m
+def getlinks():    
+    import pickle
+    filename = './data/vars/links.pickle'
+    with open(filename, 'rb') as f:
+        return pickle.load(f) #[m, p]
+    return -1
+[neg, pos] = getlinks()
 
 # Links to delta 'in'
-df_pos = pd.DataFrame({'links': pos})#.head()
-df_neg = pd.DataFrame({'links': neg})#.head()
+df_pos = pd.DataFrame({'links': list(pos)})#.head()
+df_neg = pd.DataFrame({'links': list(neg)})#.head()
 
 df_pos['in'] = df_pos['links'].apply(lambda x: delta(*x))
 df_pos['out'] = [1]*len(df_pos)
@@ -236,7 +242,7 @@ df_neg['in'] = df_neg['links'].apply(lambda x: delta(*x))
 df_neg['out'] = [0]*len(df_neg)
 print('--> Finished for negative links')
 
-del ohc_b, ohc_c, ohc_cc, pos, neg
+del ohc_b, ohc_c, ohc_cc
 
 ## SMOTE ##
 #posX = df_pos['in']; posY = df_pos['out']
@@ -246,35 +252,107 @@ del ohc_b, ohc_c, ohc_cc, pos, neg
 df_links = pd.concat([df_pos, df_neg], ignore_index=True)
 #X = df_links['in]; Y = df_links['out']
 
-df_links.to_hdf("./data/raw/dproc.h5", key='05')
+#df_links.to_hdf("./data/raw/dproc.h5", key='05')
 del df_pos, df_neg
-#--------------------------------------------
 
-#%%
+
+#%% -----------------------------------------------
 """ Classification model """
 # Build and train a DNN classifier model using the delta vectors.
 
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
-
 #df_links = pd.read_hdf("./data/raw/dproc.h5", key='05')
-# df_pos = df_links[df_links['out']==0]; df_neg = df_links[df_links['out']==0];
+# df_pos = df_links[df_links['out']==1]; df_neg = df_links[df_links['out']==0];
 #X = df_links['in']; Y = df_links['out']
 
 trainX, testX, trainY, testY = train_test_split(list(df_links['in']), list(df_links['out']), test_size=0.2, random_state=7)
 trainX, valX, trainY, valY = train_test_split(trainX, trainY, test_size=0.25, random_state=7)
-
-model_GB = GradientBoostingClassifier(n_estimators=10)
 print('-> Training begins with sample sizes: link =', sum(df_links['out']==1), 'No-link =', sum(df_links['out']==0))
-model_GB.fit(trainX, trainY)
-predY = model_GB.predict(valX)
-probY = model_GB.predict_proba(valX)
+
+#01. Gradient boosting classifier
+from sklearn.ensemble import GradientBoostingClassifier
+model = GradientBoostingClassifier(n_estimators=10)
+model.fit(trainX, trainY)
+from joblib import dump
+dump(model, './data/model/gbmodel.joblib')
+
+#02. DNN MLP
+
+
+#Predictions
+predY = model.predict(valX)
+probY = model.predict_proba(valX)[:,1]
+# df.to_hdf("./data/raw/dproc.h5", key='xx')
+
+#%%--------------------------------------------
+""" Recsys for all users """
+import networkx as nx
+import random
+import numpy
+import pandas as pd
+
+def getlinks():    
+    import pickle
+    filename = './data/vars/links.pickle'
+    with open(filename, 'rb') as f:
+        return pickle.load(f) #[m, p]
+    return -1
+[neg, pos] = getlinks()
+posG = nx.Graph(); negG = nx.Graph()
+
+posG.clear(); negG.clear()
+posG.add_edges_from(pos); negG.add_edges_from(neg)
+#nx.write_graphml(posG, "./data/viz/posG.graphml")
+#nx.write_graphml(negG, "./data/viz/negG.graphml")
+del neg, pos
+
+rawdf = pd.read_hdf("./data/raw/dproc.h5", key='04')
+ids = list(rawdf.index); rest = set(ids) 
+df_recsys = pd.DataFrame({'user_id': ids})
+
+
+df = df_recsys.head()
+df['pos'] = df['user_id'].apply(lambda x: set(posG.neighbors(x)) if x in posG else set())
+df['neg'] = df['user_id'].apply(lambda x: set(negG.neighbors(x)) if x in negG else set())
+
+df['rest'] = df['user_id']
+df.set_index('user_id', inplace = True)
+df['rest'] = df['rest'].apply(lambda x: rest - df.loc[x, 'pos'] - df.loc[x, 'neg'])
+
+# Filter the rest using 'user filter values'
+df['filtered'] = df['rest'].apply(lambda x: random.sample(list(x), k=5))
+del rawdf, ids, df_recsys, negG, posG, rest
+
+# For df['filtered'], compute delta(a,b) and perform c-model.
+
+#import func.op as op
+#global a, b
+#a = op.delta(); b = op.model()
+
+def recs(user, list_users):
+    recs = list()
+    global a, b
+    # list_users -> delta(a,b) -> c-model probs
+    #a. list_users -> delta(a,b)
+    deltas = [lambda x: a.delta(user, i) for i in list_users]
+    #b. delta(a,b) -> c-model probs
+    probs = b.modelpred(deltas)
+    #c. c-model probs -> ranked user
+    recs = [list_users[i] for i in numpy.argsort(probs)]
+    return recs
 
 # df.to_hdf("./data/raw/dproc.h5", key='06')
-#--------------------------------------------
+# df = pd.read_hdf("./data/raw/dproc.h5", key='06')
 
-#%%
-# Evaluation of recsys
+df['recs'] = df.index
+df['recs'] = df['recs'].apply(lambda x: recs(x, df.loc[x, 'filtered']))
+
+del rest, ids
+# df_recsys.to_hdf("./data/raw/dproc.h5", key='06')
+
+#%%--------------------------------------------
+""" Evaluation of recsys """
+
 import numpy as np
 import func.eval as eval
 from sklearn.metrics import classification_report
@@ -293,7 +371,7 @@ def auroc(true, score):
     print("AUROC has been computed and the value is ", res)
     return res
 
-auroc = auroc(valY, probY[:,1])
+auroc = auroc(valY, probY)
 
 #2. mar@k and map@k
 k = 10; query = 1
@@ -312,8 +390,20 @@ mrr = eval.mrr(frds[q], rec)
 """4. Rank aware metric"""
 
 # df.to_hdf("./data/raw/dproc.h5", key='07')
-#--------------------------------------------
 
 
-#%%
-# Benchmark the results
+#%%--------------------------------------------
+from importlib import reload
+reload(op)
+recsys = op.recs()
+df['recs'].apply(lambda x: recsys.rec(x, df.loc[x, 'filtered']))
+
+#%%--------------------------------------------
+""" Benchmark the results """
+
+#%%-------------------------------------------
+""" Utility ops"""
+
+def clearvars():
+    import sys
+    sys.modules[__name__].__dict__.clear()
