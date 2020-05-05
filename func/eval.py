@@ -2,15 +2,15 @@
 Date: 5 Apr 2020
 Author: Harsha harshahn@kth.se
 Implementation of evaluation metrics
+Selected: auroc, hitrate, mrr
 """
 #%%
 """ Import libraries """
 import numpy as np
 # import recmetrics
-#==============================================================================
+#===========================================================================
 
 """1. Metrics of Relevance"""
-
 #evaluate model with MSE and RMSE
 #print(recmetrics.mse(test.actual, test.cf_predictions))
 #print(recmetrics.rmse(test.actual, test.cf_predictions))
@@ -27,8 +27,7 @@ def auroc(true, score):
 """b. MAP@K and MAR@K"""
 # Precision@k = (# of recommended items @k that are relevant) / (# of recommended items @k)
 # Recall@k = (# of recommended items @k that are relevant) / (total # of relevant items)
-#[recmetrics.mark(actual, random_predictions, k=K)]
-
+# [recmetrics.mark(actual, random_predictions, k=K)]
 def meanavg(query, true, score):
     from sklearn.metrics import precision_score, recall_score
     precision = []; recall = []; res = []
@@ -41,7 +40,7 @@ def meanavg(query, true, score):
     return res
 
 #%%
-"""c. Hit-rate"""
+""" c. Hit-rate: the fraction of queries q where i was ranked among the top K of the test sample (K = 500): True pairs showed up in top 100 list """
 def hitrate(frds, rec):
     a = set(frds)
     b = set(rec)
@@ -50,7 +49,7 @@ def hitrate(frds, rec):
     print("Hitrate has been computed and the value is ", res)
     return res
 
-#==============================================================================
+#==========================================================================
 
 """2. Metrics of Serendipity"""
 #%%
@@ -69,7 +68,7 @@ example_predictions = [
 ]"""
 
 #%%
-"""b. Diversity """
+"""b. Diversity """ # cosine sim??
 def diversity():
     res = 0
     
@@ -95,11 +94,16 @@ def userhits():
     print("User hits ratio has been computed and the value is ", res)
     return res
 
-#==============================================================================
+#===========================================================================
 
 """4. Rank aware metric"""
 #%%
-"""a. Mean Reciprocal Rank (MRR) """
+"""a. Mean Reciprocal Rank (MRR) 
+Mean Reciprocal Rank is a ranking or rank-aware metric. It is a binary relevance based
+metrics and measures where is the first relevant index. Near to 1 imply the relevant items very
+high up the list of recommendations. The formula is shown as below. Ri,q is the rank of user i
+among recommended items for query q, and n is the total number of user pairs. """
+
 def mrr(frds, rec):
     res = 0
     for i in frds:
@@ -109,4 +113,4 @@ def mrr(frds, rec):
     print("MRR has been computed and the value is ", res)
     return res
 
-#==============================================================================
+#===========================================================================

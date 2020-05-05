@@ -3,23 +3,32 @@
 """ User info extraction from sql """
 import pandas as pd
 import pymysql
-import func.sql as opsql
 
 # For 'city = Göteborg', get [ user_id, stories, iam, meetFor, birthday, marital, children, lat, lng]
-query = {
-    '01' : "SELECT user_id, myStory, iAm, meetFor, birthday, marital, children, lat, lng FROM user_details a\
-            INNER JOIN users b ON (a.user_id=b.id) WHERE a.city = \"Stockholm\"",
+queries = {
+    # User profile
+    '01' : "SELECT user_id, myStory, iAm, meetFor, birthday, marital, children, lat, lng FROM user_details a INNER JOIN users b ON (a.user_id=b.id) WHERE a.city = \"Stockholm\"",
+    # User friends settings
+    '02' : ""
     }
-df = opsql.df_sqlquery(query['01'])
-del query 
+
+"""
+from func.sql import sqlquery
+with sqlquery() as newconn:
+    df = query(queries['01']) 
+
+from func.sql import df_sqlquery
+#df = df_sqlquery(queries['01'])
+"""
+del queries 
 #df.to_hdf("./data/raw/dproc.h5", key='01')
 
 #%%-----------------------------------
 """ Data pre-processing - 01 
 01. Data cleanse and imputation"""
 df = pd.read_hdf("./data/raw/dproc.h5", key='01')
-# [ user_id, myStory, values(iAm, meetFor, marital, has child, age, lat, lng) ]
 # from ['user_id', 'myStory', 'iAm', 'meetFor', 'age', 'marital', 'children', 'lat', 'lng']
+# To [ user_id, myStory, values(iAm, meetFor, marital, has child, age, lat, lng) ]
 
 df.set_index('user_id', inplace = True)
 
@@ -39,6 +48,9 @@ def cleanse(text):
             text = -1 #short texts
     return text
 
+"""
+mycleanse = cleanse(); mycleanse.cleanse(x)
+"""
 df['myStory'] = df['myStory'].apply(lambda x: cleanse(x))
 
 #'iAm', 'meetFor' to set()
@@ -65,7 +77,6 @@ df = pd.read_hdf("./data/raw/dproc.h5", key='02')
 
 #Dummy fill-up
 def trans(text):
-    #if text == -1: return -1
     #Corpus with example sentences
     texts = [ 'A man is eating food.',
                 'A man is eating a piece of bread.',
@@ -129,7 +140,7 @@ def links(ids):
     print("01 -- vars loaded!")
 
     #mf as bsp
-    bsp = set(tuple(zip(mf.user_id, mf.friend_id)))
+    bsp = set(tuple(zip(mf.user_id, mf.friend_id))) #16,108
     #af as csp
     af = af.groupby(['activity_id'])['user_id'].apply(list)
     csp = set()
@@ -176,51 +187,6 @@ ids = list(df.index)
 05. Compute delta of two users """
 # delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)) equality(marital, has children), abs_diff(age, lat, lng) ]
 
-import numpy as np
-from scipy.spatial import distance
-
-df = pd.read_hdf("./data/raw/dproc.h5", key='04')
-global df, ohc_b, ohc_c, ohc_cc
-ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
-ohc_c = np.diag(np.ones(5, dtype=int)); ohc_c[-1] = np.zeros(5, dtype=int)
-ohc_cc = np.diag(np.ones(3, dtype=int))
-
-def delta(a, b):
-    vec = list()
-    global df, ohc_b, ohc_c, ohc_cc
-
-    #a. cosine_sim_sbert
-    emb1 = df.loc[a, 'emb']; emb2 = df.loc[b, 'emb']
-    if (type(emb1) or type(emb2)) == int: #len(*emb) > 1
-        cos_dist = 0.5
-    else:
-        cos_dist = 0.5 #round(distance.cdist(emb1, emb2, 'cosine')[0][0], 3)
-    vec.append(cos_dist)
-
-    #b. count(intersection(iam, meetFor)) #ohc_b
-    iAm = len((df.loc[a, 'iAm']).intersection(df.loc[b, 'iAm']))
-    meetFor = len((df.loc[a, 'meetFor']).intersection(df.loc[b, 'meetFor']))
-    vec.extend(ohc_b[iAm] + ohc_b[meetFor])
-    
-    #c. xor(marital, children) #ohc_c, ohc_cc
-    ma = int(df.loc[a, 'marital']); mb = int(df.loc[b, 'marital'])
-    marital = ohc_c[ma] if (ma == mb) else ohc_c[-1]
-    vec.extend(marital.tolist())
-
-    ca = int(df.loc[a, 'children']); cb = int(df.loc[b, 'children'])
-    if (ca or cb) == 2:
-        children = ohc_cc[cb] if cb!=2 else ohc_cc[ca] if ca!=2 else [0,1,1]
-    else: 
-        children = ohc_cc[ca] if (ca == cb) else [0,0,0]
-    vec.extend(children)
-
-    #d. abs(age, lat, lng)
-    age = abs(df.loc[a, 'age'] - df.loc[b, 'age'])/10
-    lat = abs(df.loc[a, 'lat'] - df.loc[b, 'lat'])*10
-    lng = abs(df.loc[a, 'lng'] - df.loc[b, 'lng'])*10
-    vec.extend([age, round(lat, 3), round(lng, 3)])
-    return vec
-
 #vec = delta(458, 647)
 
 def getlinks():    
@@ -242,8 +208,6 @@ df_neg['in'] = df_neg['links'].apply(lambda x: delta(*x))
 df_neg['out'] = [0]*len(df_neg)
 print('--> Finished for negative links')
 
-del ohc_b, ohc_c, ohc_cc
-
 ## SMOTE ##
 #posX = df_pos['in']; posY = df_pos['out']
 #negX = df_neg['in']; negY = df_neg['out']
@@ -255,155 +219,50 @@ df_links = pd.concat([df_pos, df_neg], ignore_index=True)
 #df_links.to_hdf("./data/raw/dproc.h5", key='05')
 del df_pos, df_neg
 
-
 #%% -----------------------------------------------
 """ Classification model """
 # Build and train a DNN classifier model using the delta vectors.
-
-from sklearn.model_selection import train_test_split
 #df_links = pd.read_hdf("./data/raw/dproc.h5", key='05')
-# df_pos = df_links[df_links['out']==1]; df_neg = df_links[df_links['out']==0];
-#X = df_links['in']; Y = df_links['out']
+from sklearn.externals.joblib import load, dump
+from sklearn.neural_network import MLPClassifier
+from importlib import reload
+import func.cmodel as cmod
+reload(cmod)
 
-trainX, testX, trainY, testY = train_test_split(list(df_links['in']), list(df_links['out']), test_size=0.2, random_state=7)
-trainX, valX, trainY, valY = train_test_split(trainX, trainY, test_size=0.25, random_state=7)
-print('-> Training begins with sample sizes: link =', sum(df_links['out']==1), 'No-link =', sum(df_links['out']==0))
-
-#01. Gradient boosting classifier
-from sklearn.ensemble import GradientBoostingClassifier
-model = GradientBoostingClassifier(n_estimators=10)
-model.fit(trainX, trainY)
-from joblib import dump
-dump(model, './data/model/gbmodel.joblib')
-
-#02. DNN MLP
-
-
-#Predictions
-predY = model.predict(valX)
-probY = model.predict_proba(valX)[:,1]
+models = {
+    'mlp' : MLPClassifier(hidden_layer_sizes=(50,), alpha=0.001, max_iter=100), #https://scikit-learn.org/stable/modules/neural_networks_supervised.html
+    
+    'load' : load('./data/model/mlp.pkl')
+    }
+cmodel = cmod.cmodels(models['mlp'])
+model = cmodel.train()
+cmodel.eval()
+dump(model, './data/model/mlp.pkl')
 # df.to_hdf("./data/raw/dproc.h5", key='xx')
 
 #%%--------------------------------------------
-""" Recsys for all users """
-import networkx as nx
-import random
-import numpy
-import pandas as pd
-
-def getlinks():    
-    import pickle
-    filename = './data/vars/links.pickle'
-    with open(filename, 'rb') as f:
-        return pickle.load(f) #[m, p]
-    return -1
-[neg, pos] = getlinks()
-posG = nx.Graph(); negG = nx.Graph()
-
-posG.clear(); negG.clear()
-posG.add_edges_from(pos); negG.add_edges_from(neg)
-#nx.write_graphml(posG, "./data/viz/posG.graphml")
-#nx.write_graphml(negG, "./data/viz/negG.graphml")
-del neg, pos
-
-rawdf = pd.read_hdf("./data/raw/dproc.h5", key='04')
-ids = list(rawdf.index); rest = set(ids) 
-df_recsys = pd.DataFrame({'user_id': ids})
-
-
-df = df_recsys.head()
-df['pos'] = df['user_id'].apply(lambda x: set(posG.neighbors(x)) if x in posG else set())
-df['neg'] = df['user_id'].apply(lambda x: set(negG.neighbors(x)) if x in negG else set())
-
-df['rest'] = df['user_id']
-df.set_index('user_id', inplace = True)
-df['rest'] = df['rest'].apply(lambda x: rest - df.loc[x, 'pos'] - df.loc[x, 'neg'])
-
-# Filter the rest using 'user filter values'
-df['filtered'] = df['rest'].apply(lambda x: random.sample(list(x), k=5))
-del rawdf, ids, df_recsys, negG, posG, rest
-
-# For df['filtered'], compute delta(a,b) and perform c-model.
-
-#import func.op as op
-#global a, b
-#a = op.delta(); b = op.model()
-
-def recs(user, list_users):
-    recs = list()
-    global a, b
-    # list_users -> delta(a,b) -> c-model probs
-    #a. list_users -> delta(a,b)
-    deltas = [lambda x: a.delta(user, i) for i in list_users]
-    #b. delta(a,b) -> c-model probs
-    probs = b.modelpred(deltas)
-    #c. c-model probs -> ranked user
-    recs = [list_users[i] for i in numpy.argsort(probs)]
-    return recs
-
-# df.to_hdf("./data/raw/dproc.h5", key='06')
-# df = pd.read_hdf("./data/raw/dproc.h5", key='06')
-
-df['recs'] = df.index
-df['recs'] = df['recs'].apply(lambda x: recs(x, df.loc[x, 'filtered']))
-
-del rest, ids
-# df_recsys.to_hdf("./data/raw/dproc.h5", key='06')
-
-#%%--------------------------------------------
-""" Evaluation of recsys """
-
-import numpy as np
-import func.eval as eval
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix
-
-#0. Confusion matrix
-print(classification_report(valY, predY.tolist(), target_names=['No-Link', 'Link']))
-confusion_matrix(valY, predY.tolist())
-
-"""1. Metrics of Relevance"""
-#1. auroc
-"""a. Area under ROC """
-def auroc(true, score):
-    from sklearn.metrics import roc_auc_score
-    res = round(roc_auc_score(true, score),3)
-    print("AUROC has been computed and the value is ", res)
-    return res
-
-auroc = auroc(valY, probY)
-
-#2. mar@k and map@k
-k = 10; query = 1
-[map_k, mar_k] = eval.meanavg(1, valY, predY)
-
-#3. hitrate
-q = 14
-frds = {}
-frds[14] = (15, 16, 17)
-rec = (12, 13, 14, 15, 16)
-hit = eval.hitrate(frds[q], rec)
-mrr = eval.mrr(frds[q], rec)
-
-"""2. Metrics of Serendipity"""
-"""3. Metrics of User Hits"""
-"""4. Rank aware metric"""
-
-# df.to_hdf("./data/raw/dproc.h5", key='07')
-
-
-#%%--------------------------------------------
+""" Recsys for all users 
+[auc, hitrate, mrr] = recsysone(model, *(df, links))
+"""
+import func.cmodel as cmod
 from importlib import reload
-reload(op)
-recsys = op.recs()
-df['recs'].apply(lambda x: recsys.rec(x, df.loc[x, 'filtered']))
+reload(cmod)
+
+mlp = load('./data/model/mlp.pkl')
+recsys = cmod.recsysone(mlp)
+df = recsys.dfmanip(filtersize = 20, hsize=10)
+[auc, hitrate, mrr] = recsys.eval()
+
+#rawdf = pd.read_hdf("./data/raw/dproc.h5", key='04')
+#df_links = pd.read_hdf("./data/raw/dproc.h5", key='05')
 
 #%%--------------------------------------------
-""" Benchmark the results """
+""" Benchmark the results 
+Save the results with config"""
 
 #%%-------------------------------------------
 """ Utility ops"""
-
 def clearvars():
     import sys
     sys.modules[__name__].__dict__.clear()
+
