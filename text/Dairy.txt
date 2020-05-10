@@ -10,7 +10,6 @@ b. Improve the performance of c-model and with final results derive conclusions.
 c. Begin with GNN with first priority to implement the pipeline for a small scale.
 
 #==========================================================================================
-
 Data pipeline: 
 benchmark the results >> improve the cmodel(DNN using Pytorch?, SMOTE, scalar)
 
@@ -18,20 +17,17 @@ SBERT: GCP API, eval.
 GCN: read pinsage, implement, train, scaleup, benchmark the results and improve the model.
 
 Progress:
-Mon: code for delta(a,b)
-Tue: code completion for delta(a,b), consolidation of links, df prepare, delta bugfixes.
-Wed: pipeline development, 
-Fri: Transition to oops format so to enhance code management.
-Mon: pre-study readed?, reduced evaluation metrics, include eval metrics for optimization, any comments on the sparsity of our input data (18 vector size) to the neural model. Problem with validation dataset, 
-Diversity and personalization computational complexity is large, not used in the research papers and will be omitted.
+Overall, I wrote code for several functions which involve data manipulation to complete data-pipeline from raw data until scores. Then, I consolidated all the functions into a module. Fixed code for edge cases and errors. Wrote the code in OOP format so it is more efficient and manageable. First run, the results are: auroc = 0.666, hitrate = 0.25, mrr = 0.09. This week I started with PinSAGE, read the paper twice to collect technical details. Started to architect the algorithm. Gonna look for any pre-existing code to begin with otherwise start writing from scratch.
+
+Next week targets:
+a. Implement PinSAGE core functions. Then end-to-end pipeline from raw data until scores.
 
 Schedule:
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
 #==========================================================================================
-#==========================================================================================
 
 Plan ahead (for the rest of the thesis):\
-a. Data pipeline, GCP and eval S-BERT model.
+a. GCP, DNN modifications.
 b. Implement the GCN, train GCN, scaleup, evaluate GCN model.
 c. Implement the hybrid-model two, train, evaluate the hybrid-model.
 d. Data visualize all the results.

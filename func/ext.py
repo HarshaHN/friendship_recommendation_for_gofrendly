@@ -1,30 +1,33 @@
 #%%
 import pandas as pd
 import pymysql
-import func.sql as opsql
+from func.sql import sqlquery
 
 #%%
 """ Exploratory Data Analysis """
 # Perform EDA from pandas
 # https://medium.com/datadriveninvestor/introduction-to-exploratory-data-analysis-682eb64063ff
 # Use data pre-processing libs such as 
-query = { 
+queries = { 
         #User profile features
         'in' : "SELECT user_id, iAm, meetFor, birthday, marital, children FROM user_details \
         INNER JOIN users ON user_details.user_id=users.id",
         'info' : "SELECT user_id, birthday, city, country, lat, lng FROM user_details \
         INNER JOIN users ON user_details.user_id=users.id"
     }
-df = opsql.df_sqlquery(query['01'])
-df.to_hdf("./data/raw/ext.h5", key='01')
 
-del query 
+with sqlquery() as newconn:
+    df = newconn.query(queries['01']) 
+
+df.to_hdf("./data/raw/ext.h5", key='01')
+del queries 
 #info.to_hdf("./data/raw/in.h5", key='info')
 
 #%%
 """ 2. Classification model """
+
 def cmodel():
-    query = {
+    queries = {
             # a. Positive samples
             # 1. Chat friends(hard positive)
 
@@ -62,24 +65,23 @@ def cmodel():
     # mf, af, bf, vnf, uf
     print('--> SQL query begins...')
     
-    mf = opsql.df_sqlquery(query['mf'])
-    mf.to_hdf("./data/raw/cmodel.h5", key='mf')
-    print('--> mf\' query finished ')
-    af = opsql.df_sqlquery(query['af'])
-    af.to_hdf("./data/raw/cmodel.h5", key='af')
-    print('--> af\' query finished ')
-    bf = opsql.df_sqlquery(query['bf'])
-    bf.to_hdf("./data/raw/cmodel.h5", key='bf')
-    print('--> bf\' query finished ')
-    vnf = opsql.df_sqlquery(query['vnf'])
-    vnf.to_hdf("./data/raw/cmodel.h5", key='vnf')
-    print('--> vnf\' query finished ')
-    uf = opsql.df_sqlquery(query['uf'])
-    uf.to_hdf("./data/raw/cmodel.h5", key='uf')
-    print('--> uf\' query finished ')
+    with sqlquery() as newconn:
+        mf = newconn.query(queries['mf']) 
+        mf.to_hdf("./data/raw/cmodel.h5", key='mf')
+        print('--> mf\' query finished ')
+        af = newconn.query(queries['af']) 
+        af.to_hdf("./data/raw/cmodel.h5", key='af')
+        print('--> af\' query finished ')
+        bf = newconn.query(queries['bf'])
+        bf.to_hdf("./data/raw/cmodel.h5", key='bf')
+        print('--> bf\' query finished ')
+        vnf = newconn.query(queries['vnf']) 
+        vnf.to_hdf("./data/raw/cmodel.h5", key='vnf')
+        print('--> vnf\' query finished ')
+        uf = newconn.query(queries['uf']) 
+        uf.to_hdf("./data/raw/cmodel.h5", key='uf')
+        print('--> uf\' query finished ')
 
-    db.close()
-    print('db connection has been closed.')
     return [mf, af, bf, vnf, uf]
 
 [mf, af, bf, vnf, uf] = cmodel()

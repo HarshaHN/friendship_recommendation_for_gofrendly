@@ -1,0 +1,14 @@
+
+
+Steps:
+input: graph, input node features of the users 
+(take care of isolated nodes, ).
+
+
+1. Use algorithm 1 to generate the embedding for a given node. 
+2. Train the model, so that the loss minimizes.
+3. 
+
+we apply multiple convolutional modules that aggregate feature information from the node’s local graph neighborhood.
+
+2. 

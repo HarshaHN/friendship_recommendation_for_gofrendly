@@ -9,6 +9,8 @@ git add --all
 git commit -m "Initial Commit"
 git config --global user.email connectharsha13@gmail.com
 git config --global user.name harshahn
+git config --global user.email harshahn@kth.se
+git config --global user.name harshahn
 git remote add origin https://harshahn@bitbucket.org/harshahn/workspace.git
 git push -u origin master
 git remote rm origin
