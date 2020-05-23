@@ -108,7 +108,7 @@ uf = pd.read_hdf("./data/raw/cmodel.h5", key='uf')
 # CF: 1
 #asetplus = 
 
-# MF: 1, count: a. b.120409 c. 
+# MF: 1, count: a. b.120409(16,108) c. 
 bsp = set(tuple(zip(mf.user_id, mf.friend_id)))
 #bplus = pd.DataFrame({ 'pairs': tuple(zip(mf.user_id, mf.friend_id)), 'out': [1]*mf.shape[0]})
 #pdata = pdata.append(bplus, ignore_index = True)

@@ -1,30 +1,29 @@
 
+
+
+#========================================================================================
 Discussion outcomes:
-a. Data imbalance may not be a problem by default. However, a comparison can be made with balanced aswell as SMOTE.
-b. #input vectors were approved but with significant changes such as using xor for iAm, meetFor, marital, has children. however, for (age, lat, lng) Euclidean can be taken(special care for lat and long). As for the sbert, cosine_sim_sbert is a way to go.
-c. Use the 'evaluation metric' output values as a feedback to improve c-model.
+
+#========================================================================================benchmark the results >> improve the cmodel(DNN using Pytorch?, SMOTE, scalar)
+SBERT: GCP API, eval.
+GCN: pinsage implement, train, scaleup, benchmark the results and improve the model.
+
+Pinsage convolve imp, minibatch in progress, 
+
 
 Next week targets:
-a. GCP translate API, train c-model, benchmark the results.
-b. Improve the performance of c-model and with final results derive conclusions.
-c. Begin with GNN with first priority to implement the pipeline for a small scale.
+a. Implement PinSAGE core functions. Then end-to-end pipeline from raw data until scores.
 
-#==========================================================================================
-Data pipeline: 
-benchmark the results >> improve the cmodel(DNN using Pytorch?, SMOTE, scalar)
-
-SBERT: GCP API, eval.
-GCN: read pinsage, implement, train, scaleup, benchmark the results and improve the model.
-
-Progress:
-Overall, I wrote code for several functions which involve data manipulation to complete data-pipeline from raw data until scores. Then, I consolidated all the functions into a module. Fixed code for edge cases and errors. Wrote the code in OOP format so it is more efficient and manageable. First run, the results are: auroc = 0.666, hitrate = 0.25, mrr = 0.09. This week I started with PinSAGE, read the paper twice to collect technical details. Started to architect the algorithm. Gonna look for any pre-existing code to begin with otherwise start writing from scratch.
+c. module for pinsage.
+d. module for training.
+e. experiments for optimization.
 
 Next week targets:
 a. Implement PinSAGE core functions. Then end-to-end pipeline from raw data until scores.
 
 Schedule:
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
-#==========================================================================================
+#=======================================================================================
 
 Plan ahead (for the rest of the thesis):\
 a. GCP, DNN modifications.
@@ -57,7 +56,7 @@ conda install -c conda-forge google-cloud-translate
 
 2. Elastic search: 
 https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html
-------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------
 
 8CG9318CQ7 HP Envy x360 convertible M15-dr0002no.
 776622077 8 to 7pm HP call centre, 9-13 on saturday.
@@ -77,6 +76,12 @@ Phone : +46 761556623
 
 -----------------------------------------------------------------------------------------
 About life in general:
+Born responsibility: make a living, aid and inspire family
+Deepest purpose is to build social groups to solve social challenges.
+Daily gift to the world: aid and inspire friends.
+Attitude: Look ahead, think about good thgs, be a man to get what you need,
+Status, appreciation, finance, 
+
 Meet the expectations of your family, close friends. 
 Thrive on social media - more love & good vibes!
 Be creative and energetic: Gym, sports.

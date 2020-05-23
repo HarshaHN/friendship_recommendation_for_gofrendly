@@ -30,6 +30,7 @@ cat id_rsa.pub
 
 #MySQL 
 Windows:
+import the new .sql database
 https://www.youtube.com/watch?v=C9AGrSJ6ZB0&t=183s
 After mysql server, import gofrendly database and must be displayable on the schema.
 Choose MySQL 8+

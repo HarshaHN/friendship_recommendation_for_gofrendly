@@ -128,8 +128,11 @@ class recsysone(cmodels, deltas):
         # 01. Get recommendation list
         df.set_index('user_id', inplace = True)
         df['rest'] = df.index; df['pool'] = df.index; df['recs'] = df.index
+        
+        #validation set
         df['val'] = df['pos'].apply(lambda x: random.sample(list(x), min(math.floor(len(x)*0.25), 5)) \
             if len(x)>3 else None)
+
         df['rest'] = df['rest'].apply(lambda x: set(self.rawdf.index) - df.loc[x, 'pos'] - df.loc[x, 'neg'])
         df['filtered'] = df['rest'].apply(lambda x: random.sample(list(x), filtersize))
         df = df.dropna()

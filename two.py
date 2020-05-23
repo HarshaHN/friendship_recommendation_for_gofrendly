@@ -10,90 +10,82 @@ https://github.com/dmlc/dgl
 https://github.com/dmlc/dgl/blob/master/examples/pytorch/rgcn/link_predict.py#L34
 
 """
+
 """
-1. input: graph, input node features of the users (take care of isolated nodes)
-2. 
+c. module for pinsage.
+d. module for training.
+e. experiments for optimization.
 """
 
 #%%----------------------
-""" Load the network data into dgl"""
+""" 01. Load the network data into dgl """
 import twofunc.data as op
 #from importlib import reload; reload(op)
-[ids, mf] = op.loadmf()
+[ids, [trainids, trainmf]] = op.loadmf()
 
 # DGL Graph from network
 import dgl
 import torch
 
-id_idx = dict(zip(ids, range(len(ids))))
-[frds, G] = op.dglnx(ids, id_idx, mf)
+id_idx = dict(zip(trainids, range(len(trainids))))
+[trainfrds, G] = op.dglnx(trainids, id_idx, trainmf)
 
+#%%-------------------------------
 #Save the DGL graph
 from dgl.data.utils import save_graphs, load_graphs
-save_graphs("./data/two/dglmf.bin", G)
-G = load_graphs("./data/two/dglmf.bin")[0][0]
-nx_G = G.to_networkx().to_undirected()
+#save_graphs("./data/two/dglmf_noniso.bin", G) #dglmf
+G = load_graphs("./data/two/dglmf_noniso.bin")[0][0]
+print('We have %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
+#nxviz(G)
 
 #%%----------------------
-""" Build GCN """
+""" 02. Assign features to nodes or edges """
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-#Add features to the DGL graph
-import pandas as pd
-rawdf = pd.read_hdf("./data/raw/dproc.h5", key='04').head()
-embed = nn.Embedding(1, 5)
-G.ndata['feat'] = embed.weight
-
+# Add features to each node G.subgraph(1)
+embed = nn.Embedding(G.number_of_nodes(), 2)
+G.ndata['feat'] = embed.weight #op.getrawemb(G.number_of_nodes())
 
 #%%----------------------
-""" Scratch pad """
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(28*28, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 64)
-        self.fc4 = nn.Linear(64, 10)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.fc4(x)
-        return F.log_softmax(x, dim=1)
-
-net = Net()
-
-X = torch.randn((28,28))
-X = X.view(-1,28*28)
-output = net(X)
-    
-    
+""" Graph Neural Network """
+import twofunc.nn as nnop
+net = nnop.GCN(2, 3, 2)
 
 #%%----------------------
-
-
-
-
-#%%----------------------
-""" Import libraries """
-
-
-
-
+""" Data preparation and initialization """
+inputs = G.ndata['feat']
 
 #%%----------------------
-""" Import libraries """
+""" Train and visualize """
+net.traingnn(trainfrds, embed, inputs)
+
+#%%----------------------
+"""  """
+
+#%%----------------------
+""" Load validation dataset """
+import twofunc.data as op
+
+# trainmf, trainids, id_idx >> deltavalmf(id_idx) which are in trainids
+dvalfrds = op.deltamf(trainmf, trainids, id_idx)
+del trainmf
 
 #%%--------------------------------------------
-""" Recsys for all users 
-[auc, hitrate, mrr] = recsysone(model, *(df, links))
-"""
+""" Recsys for all users """
+import twofunc.recs as gnn
+# from importlib import reload; reload(gnn)
+
+# model = load('./data/model/gnn.pkl')
+recsys = gnn.recsystwo(len(trainids))
+recsdf = recsys.dfmanip(dvalfrds, 10)
+[hitrate, mrr] = recsys.eval()
 
 #%%-------------------------------------------
 """ Utility ops"""
 def clr():
     import sys
     sys.modules[__name__].__dict__.clear()
+
+# %%
