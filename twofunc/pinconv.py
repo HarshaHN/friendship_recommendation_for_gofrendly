@@ -1,25 +1,29 @@
-"""Torch modules for pinsage graph convolutions(PGCN)."""
+"""
+Date: 18 May 2020
+Goal: 01 Pinsage algo 1 for one node.
+Author: Harsha HN harshahn@kth.se
+"""
 
+#%% ------------------------
+""" 00. import libraries """
 import torch as th
 from torch import nn
 from torch.nn import init
 import dgl.function as fn
 import torch.nn.functional as F
-#from ....base import DGLError
+#dgl.load_backend('pytorch')
 
+#%%-----------------------------------------
+""" 01. PinsageConv """
 class PinConv(nn.Module):
    
- def __init__(self,
-                 in_feats,
-                 hidden_feats,
-                 out_feats,
-                 norm='right'):
+    def __init__(self, in_feats, hidden_feats, out_feats):
         super(PinConv, self).__init__()
+        # feature size
         self._in_feats = in_feats
         self._hidden_feats = hidden_feats
-        self._out_feats = out_feats
-        self._norm = norm
-
+        self._out_feats = out_feats 
+        
         # kernels
         self.Q = nn.Linear(in_feats, hidden_feats)
         self.W = nn.Linear(in_feats + hidden_feats, out_feats)
@@ -32,27 +36,17 @@ class PinConv(nn.Module):
     def forward(self, graph, feat):
         """Compute graph convolution.
 
-        Notes
-        -----
-        * Input shape: :math:`(N, *, \text{in_feats})` where * means any number of additional
-          dimensions, :math:`N` is the number of nodes.
-        * Output shape: :math:`(N, *, \text{out_feats})` where all but the last dimension are
-          the same shape as the input.
-        * Weight shape: "math:`(\text{in_feats}, \text{out_feats})`.
-
         Parameters
         ----------
         graph : DGLGraph
             The graph.
         feat : torch.Tensor
-            The input feature
-        weight : torch.Tensor, optional
-            Optional external weight tensor.
+            The input feature (Node embeddings)
 
         Returns
         -------
         torch.Tensor
-            The output feature
+            The output feature (Node embeddings)
         """
         graph = graph.local_var()
 
@@ -62,14 +56,17 @@ class PinConv(nn.Module):
         rst = graph.dstdata['h']
         rst = th.cat([feat, rst], 1)
         rst = F.relu(self.W(rst))
-
+        
         degs = graph.in_degrees().to(feat.device).float().clamp(min=1)
         norm = 1.0 / degs
         shp = norm.shape + (1,) * (feat.dim() - 1)
         norm = th.reshape(norm, shp)
         rst = rst * norm
 
-        rst = rst / rst.norm(dim=1, keepdim=True)
+        denom = rst.norm(dim=1, keepdim=True)
+        if any(denom) != 0:
+            rst = rst / denom
+
         return rst
 
     def extra_repr(self):
