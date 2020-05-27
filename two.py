@@ -1,91 +1,77 @@
 """
 Date: 6 May 2020
 Author: Harsha harshahn@kth.se
-Graph Neural Network, output: [auroc, hitrate, mrr]
-
-Referencs:
-PinSAGE, GCN, GNN, 
-https://github.com/rusty1s/pytorch_geometric
-https://github.com/dmlc/dgl
-https://github.com/dmlc/dgl/blob/master/examples/pytorch/rgcn/link_predict.py#L34
-
-"""
-
-"""
-c. module for pinsage.
-d. module for training.
-e. experiments for optimization.
+Graph Neural Network, output: [hitrate, mrr]
 """
 
 #%%----------------------
-""" 01. Load the network data into dgl """
-import twofunc.data as op
-#from importlib import reload; reload(op)
-[ids, [trainids, trainmf]] = op.loadmf()
+""" 01. Load the data into DGL """
 
-# DGL Graph from network
+import twofunc.data as op
+from importlib import reload; reload(op)
+
+Load = 1
+if Load == 1:
+    import pickle
+    with open('./data/two/check01.pkl', 'rb') as f:
+        [G, trainpos, trainneg, valpos, id_indx, indx_id] = pickle.load(f); del G.ndata['id']
+else: [G, trainpos, trainneg, valpos, id_indx, indx_id] = op.createG() #(save=True)
+del Load, f, id_indx, indx_id
+
+#%%----------------------
+""" 02. Assign features to nodes """
+
 import dgl
-import torch
+#G.ndata['feat'] = op.getrawemb(G.number_of_nodes(), fdim=5, features=False)
 
-id_idx = dict(zip(trainids, range(len(trainids))))
-[trainfrds, G] = op.dglnx(trainids, id_idx, trainmf)
-
-#%%-------------------------------
-#Save the DGL graph
-from dgl.data.utils import save_graphs, load_graphs
-#save_graphs("./data/two/dglmf_noniso.bin", G) #dglmf
-G = load_graphs("./data/two/dglmf_noniso.bin")[0][0]
-print('We have %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
-#nxviz(G)
 
 #%%----------------------
-""" 02. Assign features to nodes or edges """
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+""" 03. Graph Neural Network """
 
-# Add features to each node G.subgraph(1)
-embed = nn.Embedding(G.number_of_nodes(), 2)
-G.ndata['feat'] = embed.weight #op.getrawemb(G.number_of_nodes())
+from twofunc.gnn import gnet
+mod = gnet(G, trainpos, trainneg)
 
-#%%----------------------
-""" Graph Neural Network """
-import twofunc.nn as nnop
-net = nnop.GCN(2, 3, 2)
+import twofunc
+from importlib import reload; reload(twofunc)
+mod = twofunc.gnn.gnet(G, trainpos, trainneg)
 
-#%%----------------------
-""" Data preparation and initialization """
-inputs = G.ndata['feat']
+#%%
+mod.config(fdim = 6,
+                fsize = 3,
+                layers = 2,
+                opt = 'Adam',
+                lr = 1e-5,
+                margin = 1.0)
 
-#%%----------------------
-""" Train and visualize """
-net.traingnn(trainfrds, embed, inputs)
-
-#%%----------------------
-"""  """
+#%%-----------------------
+""" 04. Train using GCN """
+mod.train(epochs = 2)
 
 #%%----------------------
-""" Load validation dataset """
-import twofunc.data as op
-
-# trainmf, trainids, id_idx >> deltavalmf(id_idx) which are in trainids
-dvalfrds = op.deltamf(trainmf, trainids, id_idx)
-del trainmf
-
-#%%--------------------------------------------
-""" Recsys for all users """
+""" 05. Recsys and evaluation of data """
 import twofunc.recs as gnn
 # from importlib import reload; reload(gnn)
 
 # model = load('./data/model/gnn.pkl')
 recsys = gnn.recsystwo(len(trainids))
+recsdf = recsys.dfmanip(trainfrds, 10)
 recsdf = recsys.dfmanip(dvalfrds, 10)
 [hitrate, mrr] = recsys.eval()
 
-#%%-------------------------------------------
-""" Utility ops"""
-def clr():
-    import sys
-    sys.modules[__name__].__dict__.clear()
 
-# %%
+
+
+
+#%%-----------
+import sys
+sys.modules[__name__].__dict__.clear()
+
+
+"""
+To-Do
+a. Train G with mf and bf
+b. implement KNN and eval on validation dataset
+c. node embeddings for isolated nodes???
+d. feature scaling and inclusion
+e. integrate all and code for experiments.
+"""

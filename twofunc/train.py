@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import itertools
 import dgl
 from dgl.data.utils import save_graphs, load_graphs
-from importlib import reload; reload(pinconv)
+#from importlib import reload; reload(pinconv)
 
 #%%-----------------------------------------
 
@@ -76,7 +76,7 @@ fsize = [fdim]*3
 layers = 2
 lr = 5e-4
 epochs = 100*2
-margin = .0 #loss
+margin = 1.0 #loss
 
 # Get the graph
 G = getT() # getG()
@@ -121,3 +121,6 @@ plt.plot(loss_values)
 import sys
 sys.modules[__name__].__dict__.clear()
 
+
+
+# %%
