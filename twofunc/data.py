@@ -11,8 +11,10 @@ def getemb(nodes, fdim=5, features = False):
     embed = nn.Embedding(nodes, fdim) 
     return embed.weight
 
-def createG():
+def createG(save = False):
+
     [ids, trainids, trainmf, trainbf] = loadlinks() #, trainvnf
+    print('-> Train set mf and bf links are finished.')
 
     id_indx = dict(zip(trainids, range(len(trainids)))) #dict(enumerate(trainids))
     indx_id = dict(zip(range(len(trainids)), trainids))
@@ -20,17 +22,25 @@ def createG():
     # Create DGL graph from friendship links.
     import dgl
     [trainfrds, G] = dglnx(trainids, id_indx, trainmf)
-    print('We have %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
+    print('-> Graph G has %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
 
     trainblk = [(id_indx[a], id_indx[b]) for a,b in trainbf]
     trainneg = list(zip(*trainblk))
     trainpos = list(zip(*trainfrds))
 
     # Validation set: friend links who are in trainids
-    dvalfrds = deltamf(trainmf, trainids, id_indx)
+    valpos = deltamf(trainmf, trainids, id_indx)
+    print('-> Validation set friend links are finished.')
+
+    if save:
+        # Save
+        import pickle
+        with open('./data/two/check01.pkl', 'wb') as f:
+            pickle.dump([G, trainpos, trainneg, valpos, id_indx, indx_id], f)
+            print('-> Variables have been saved.')
 
     #del trainblk, trainbf, trainfrds, trainmf, ids, trainids
-    return [G, trainpos, trainneg, dvalfrds, id_indx, indx_id]
+    return [G, trainpos, trainneg, valpos, id_indx, indx_id]
 
 def deltamf(trainmf, trainids, id_indx): #trainmf, trainids, id_indx
     import pandas as pd
@@ -71,7 +81,7 @@ def loadlinks():
     #vnf = pd.read_hdf("./data/raw/cmodel.h5", key='vnf')
     #vnfs = set(tuple(zip(vnf.user_id, vnf.seen_id)))
     mfs = mfs - bfs
-    print('-->files loaded')
+    print('-> df files are loaded')
 
     def sub(subids, links, lids=0):
         sublinks = set(); linkids = list()
