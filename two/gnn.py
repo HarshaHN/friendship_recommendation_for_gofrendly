@@ -1,11 +1,9 @@
 """
 Date: 22 May 2020
-Goal: 02 Complete network, training and evaluation
+Goal: 02 Complete network and training.
 Author: Harsha HN harshahn@kth.se
 """
-
 #%%---------------
-# import torch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,7 +11,7 @@ import twofunc.pinconv as pinconv
 import matplotlib.pyplot as plt 
 import itertools
 import dgl
-#from importlib import reload; reload(pinconv)
+# from importlib import reload; reload(pinconv)
 
 #%%------------------
 #Define a Graph Convolution Network
@@ -24,22 +22,23 @@ class PCN(nn.Module):
         self.pinconvs = nn.ModuleList([
             pinconv.PinConv(in_feats, hidden_size, out_feats) for k in range(K) ])
         self.G = nn.Linear(out_feats, out_feats)
-        #self.g = nn.Parameter(torch.Tensor(1))
-        #self.g = 1
+        self.g = nn.Parameter(torch.Tensor(1))
+        
         nn.init.xavier_uniform_(self.G.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.constant_(self.G.bias, 0)
-
+        nn.init.constant_(self.g, 1)
+        
     def forward(self, g, inputs):
         h = inputs
         for i, pconv in enumerate(self.pinconvs):
             h = pconv(g, h)
-        h = F.relu(self.G(h)) #*self.g
+        h = F.relu(self.G(h)) * self.g
         return h
 
 #%%---------------------------
 class gnet():
     def __init__(self, G, pos, neg):
-        self.G = G #G.readonly(True)
+        self.G = G #self.G.readonly(True)
         self.pos = torch.tensor(pos)
         self.neg = torch.tensor(neg)
         self.nodesize = self.G.number_of_nodes()
@@ -55,7 +54,6 @@ class gnet():
 
         # Define the optimizer
         self.optimizer = getattr(torch.optim, opt)(itertools.chain(self.net.parameters(), self.embed.parameters()), lr)
-        #optimizer = torch.optim.Adam(itertools.chain(net.parameters(), embed.parameters()), lr)
 
         # Loss function
         self.margin = margin

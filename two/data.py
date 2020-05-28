@@ -1,8 +1,13 @@
+"""
+Date: 02 May 2020
+Goal: 01 Data processing for two.py
+Author: Harsha HN harshahn@kth.se
+"""
 
 #%%----------------------
 """ Load the network data """
-import torch
 
+# Get node embeddings
 def getemb(nodes, fdim=5, features = False):
     import torch.nn as nn
     #Load the feature data of each node, do feature engg data pre-processing such as scaling.
@@ -11,6 +16,7 @@ def getemb(nodes, fdim=5, features = False):
     embed = nn.Embedding(nodes, fdim) 
     return embed.weight
 
+# Create DGL graph G from the network data
 def createG(save = False):
 
     [ids, trainids, trainmf, trainbf] = loadlinks() #, trainvnf
@@ -42,9 +48,10 @@ def createG(save = False):
     #del trainblk, trainbf, trainfrds, trainmf, ids, trainids
     return [G, trainpos, trainneg, valpos, id_indx, indx_id]
 
-def deltamf(trainmf, trainids, id_indx): #trainmf, trainids, id_indx
+# Calculate delta new links from train
+def deltamf(trainmf, trainids, id_indx):
     import pandas as pd
-    valmf = pd.read_hdf("./data/02_val/sqldata.h5", key='mf')
+    valmf = pd.read_hdf("./data/common/val/sqldata.h5", key='mf')
     valmfs = set(tuple(zip(valmf.user_id, valmf.friend_id)))
 
     links = set()
@@ -58,6 +65,7 @@ def deltamf(trainmf, trainids, id_indx): #trainmf, trainids, id_indx
     return dvalmf
 
 #%%
+# Create DGL graph from links and ids
 def dglnx(ids, id_indx, mf):
     import dgl
     import torch
@@ -70,6 +78,7 @@ def dglnx(ids, id_indx, mf):
     return [frds, G]
 
 #%%
+# Load all the links from stored files
 def loadlinks():
     #loads the mf with its ids, bf and all ids.
     import pandas as pd
@@ -98,6 +107,7 @@ def loadlinks():
     #[_, vnf] = sub(mids, vnfs); print('-> vnf finished')
     return [ids, mids, mf, bf]
 
+# Visualize the network
 def nxviz(G):
     import networkx as nx
     nx_G = G.to_networkx()#.to_undirected()

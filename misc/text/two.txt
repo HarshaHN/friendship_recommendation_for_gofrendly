@@ -1,3 +1,7 @@
+
+
+
+
 ================================================================================================
 ### Pytorch ###
 
@@ -28,23 +32,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 ### END ###
 ================================================================================================
 
-Steps:
-input: graph, input node features of the users 
-output: graph nodes with pinsage embeddings.
-recs: apply knn to get matches.
-
-a. pinsage algo 1 for all node. (try to do it in 3d tensors)
-pinsage.py: alpha mask;
-b. Create a sample minibatch and algo 2 for minibatches. 
->minibatch.py
-c. create overall minibatches.
-feedbatches.py
-d. train and get evals
-run.py
-e. include feature, other links and get evals.
-full.py
-f. Pilot other features or architectural changes.
-pilot.py
 ================================================================================================
 
 Issues:

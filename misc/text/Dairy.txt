@@ -1,53 +1,25 @@
-
-
+Plan ahead (for the rest of the thesis):
+1. Other links, all 120,000 users, isolated nodes.
+2. Feature scaling and inclusion.
+3. one and two revisit, integration, organise, improvements, optimization and experiments.
+    one: SBERT using GCP API, DNN using Pytorch?, SMOTE, scalar.
+    two: 
+4. Hybrid model, experiments. mrr and hr optimize.
+5. Cause for low scores: 60% is max cap, chat friends, user filters, not seen.
+6. Results analysis, Data viz, report, presentation, thesis formalities.
+7. Collab with erwan for software deployment into production.
+40,000 SEK
 
 #========================================================================================
 Discussion outcomes:
 
-#========================================================================================benchmark the results >> improve the cmodel(DNN using Pytorch?, SMOTE, scalar)
-SBERT: GCP API, eval.
-GCN: pinsage implement, train, scaleup, benchmark the results and improve the model.
-
-Pinsage convolve imp, minibatch in progress, 
-
-
-Next week targets:
-a. Implement PinSAGE core functions. Then end-to-end pipeline from raw data until scores.
-
-c. module for pinsage.
-d. module for training.
-e. experiments for optimization.
-
-Next week targets:
-a. Implement PinSAGE core functions. Then end-to-end pipeline from raw data until scores.
-
 Schedule:
 https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
+
+#========================================================================================
 #=======================================================================================
 
-Plan ahead (for the rest of the thesis):\
-a. GCP, DNN modifications.
-b. Implement the GCN, train GCN, scaleup, evaluate GCN model.
-c. Implement the hybrid-model two, train, evaluate the hybrid-model.
-d. Data visualize all the results.
-e. Software deploy
-f. Thesis report, presentation, thesis formalities completion.
-
-Pending approval:
-a. Prestudy report.
-
-Completed:
-a. Define specification of the research problem
-b. Researcy survey of Social Network Analysis
-c. Deeper analysis for solution
-d. Implement the S-BERT: google trans, S-BERT and cosine similarity.
-e. Implementation of evaluation metrics: auroc, meanavg, mrr, hitrate, perosnalization are done. 
-
 Links:
-http://snap.stanford.edu/proj/embeddings-www/files/
-https://web.stanford.edu/class/cs224w/
-Data visualization: Neo4j Labs- https://neo4j.com/developer/tools-graph-visualization/
-
 1. translate: google translate all user stories.
 Avg story length is 400 ch per user - 36 million users * 20$ per million = 720$
 conda install -c conda-forge langdetect
@@ -56,6 +28,11 @@ conda install -c conda-forge google-cloud-translate
 
 2. Elastic search: 
 https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html
+
+http://snap.stanford.edu/proj/embeddings-www/files/
+https://web.stanford.edu/class/cs224w/
+Data visualization: Neo4j Labs- https://neo4j.com/developer/tools-graph-visualization/
+
 -----------------------------------------------------------------------------------------
 
 8CG9318CQ7 HP Envy x360 convertible M15-dr0002no.
@@ -63,9 +40,7 @@ https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-
 
 case num: 5046011351
 Activity: 3058139, 857433
-
 your phone: 0851993085 Hp
-
 infocare: +46 104 99 30 00
 0776 700303
 -----------------------------------------------------------------------------------------
