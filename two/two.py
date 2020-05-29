@@ -3,95 +3,106 @@ Date: 6 May 2020
 Author: Harsha harshahn@kth.se
 Graph Neural Network, output: [hitrate, mrr]
 """
+#%%------i
+import pandas as pd
 
 #%%----------------------
 """ 01. Load the data into DGL """
-
-import twofunc.data as op
-from importlib import reload; reload(op)
+#import dproc
+#from importlib import reload; reload(dproc)
+from dproc import dproc
 
 Load = 1
 if Load == 1:
     import pickle
-    with open('./data/two/check01.pkl', 'rb') as f:
-        [G, trainpos, trainneg, valpos, id_indx, indx_id] = pickle.load(f); del G.ndata['id']
-else: [G, trainpos, trainneg, valpos, id_indx, indx_id] = op.createG() #(save=True)
-del Load, f, id_indx, indx_id
+    with open('../data/two/check01.pkl', 'rb') as f:
+        [G, trainpos, trainneg, valpos, _, _] = pickle.load(f)
+else: 
+    [G, trainpos, trainneg, valpos, _, _] = dproc.getdata()
 
 #%%----------------------
-""" 02. Assign features to nodes """
+""" 02. Graph Neural Network """
 
-import dgl
-#G.ndata['feat'] = op.getrawemb(G.number_of_nodes(), fdim=5, features=False)
-
-
-#%%----------------------
-""" 03. Graph Neural Network """
-
-from twofunc.gnn import gnet
+from gnn import gnet
 mod = gnet(G, trainpos, trainneg)
+#trainpos = tuple(zip(trainpos[0],trainpos[1]))
 
-#import twofunc
-#from importlib import reload; reload(twofunc)
-#mod = twofunc.gnn.gnet(G, trainpos, trainneg)
+# import gnn
+# from importlib import reload; reload(gnn)
+# mod = gnn.gnet(G, trainpos, trainneg)
+# del trainneg
 
 #%%-----------------------
-""" 04. Train using GCN """
-mod.config(fdim = 10,
-                fsize = 3,
-                layers = 2,
-                opt = 'Adam',
-                lr = 1e-3,
-                margin = 2.0)
+""" 03. Train using GCN """
+import dgl
+#nodefeat = data.getrawemb()
 
-mod.train(epochs = 50)
+mod.config( fdim = 20, fsize = 3,
+            layers = 5,
+            opt = 'Adam',
+            lr = 1e-3,
+            margin = -1.0, # -1 for opp and 0 for 90.
+            loss = 'cosine', # cosine or pinsage
+            embflag=False, nodefeat=None )
+
+mod.train(epochs = 100, lossth=0.05)
 
 #%%
 # Save or load the variables
+nodeemb = mod.G.srcdata['feat'].detach().numpy()
+
 """
-emb = mod.G.srcdata['feat'].detach().numpy()
 import pickle
-with open('./data/two/emb.pkl', 'wb') as f:
-    pickle.dump(emb, f)
+with open('../data/two/nodeemb.pkl', 'wb') as f:
+    pickle.dump(nodeemb, f)
 
 import pickle
-with open('./data/two/mod.pkl', 'wb') as f:
+with open('../data/two/gnn.pkl', 'wb') as f:
     pickle.dump(mod, f)
+del f
 """
 
-
-"""
-"""
 import pickle
-with open('./data/two/emb.pkl', 'rb') as f:
-    emb = pickle.load(f)
+with open('../data/two/cosineloss.pkl', 'rb') as f:
+    nodeemb = pickle.load(f)
 
-with open('./data/two/check01.pkl', 'rb') as f:
-    [G, trainpos, _, valpos, _, _] = pickle.load(f)
-"""
-"""
+with open('../data/two/check01.pkl', 'rb') as f:
+    [G, check, _, valpos, _, _] = pickle.load(f) 
+    #model = pickle.load('./data/model/gnn.pkl')
+
 #%%----------------------
-""" 05. Recsys and evaluation of data """
-from twofunc.recs import recstwo
-recsys = recstwo(G.number_of_nodes(), emb, K=1000)
+""" 04. Recsys and evaluation of data """
+from recs import recsys
+#from importlib import reload; reload(recs)
+rec = recsys(G.number_of_nodes(), nodeemb, K=500, nntype='cosine')
 
-"""
-from importlib import reload; reload(twofunc)
-import twofunc
-recsys = twofunc.recs.recstwo(G.number_of_nodes(), emb, K=10)
-"""
-
-# model = load('./data/model/gnn.pkl')
-#recsys = recstwo(num = G.number_of_nodes(), emb=mod.G.srcdata['feat'])
-#[traindf, trainmrr, trainhr] = recsys.dfmanip(tuple(zip(trainpos[0],trainpos[1])), 10)
-[valdf, valmrr, valhr] = recsys.dfmanip(valpos) #valpos = zip(*valpos) #tuple(zip(trainpos[0],trainpos[1]))
-print(valmrr, valhr)
+# df, mrr, hr
+trainpos = tuple(zip(trainpos[0],trainpos[1]))
+teval = rec.dfmanip(trainpos) 
+veval = rec.dfmanip(valpos)
+#testeval = rec.dfmanip(testpos)
+print(teval[1:], veval[1:]) #, testeval[1:])
 
 #%%-----------
 import sys
 sys.modules[__name__].__dict__.clear()
-
-
-
+"""
+#valpos = zip(*valpos)
 #params = list(mod.net.parameters()) #params[0][0]
-#list(mod.G.srcdata['feat'])[0] #embs[0]
+
+from sklearn.neighbors import NearestNeighbors
+neigh = NearestNeighbors(n_neighbors=10, algorithm='brute', metric='cosine')
+neigh.fit(nodeemb)
+neigh.kneighbors(nodeemb, 10, return_distance=False)[0]
+
+resind = [ 0,  210, 2275, 4678, 1905, 5920, 5337, 1618, 1234, 3785]
+from sklearn.metrics.pairwise import cosine_similarity
+print(cosine_similarity(nodeemb, nodeemb)) #res
+print(cosine_distances([nodeemb[0]], [nodeemb[210]]))
+
+from scipy.spatial.distance import cosine
+print(cosine([nodeemb[0]], [nodeemb[210]]))
+
+import numpy
+numpy.argsort([5,4,3,2,1])
+"""

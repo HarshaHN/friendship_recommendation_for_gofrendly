@@ -1,4 +1,24 @@
 
+
+--------------------------------------------------
+mod.config( fdim = 20, fsize = 3,
+            layers = 2,
+            opt = 'Adam',
+            lr = 1e-3,
+            margin = -1.0, # -1 for opp and 0 for 90.
+            embflag=False, nodefeat=None )
+            
+teval = [0.018, 0.078] veval = [0.001, 0.079]
+--------------------------------------------------
+fdim = 20, fsize = 3,
+            layers = 5,
+            opt = 'Adam',
+            lr = 1e-3,
+            margin = 5.0,
+mrr, hitrate
+train: [0.006, 0.091] val: [0.002, 0.089]
+--------------------------------------------------
+
 gnn: hitrate = 0.104, mrr = 0.004 K = 500 random
 --------------------------------------------------
 sbert auroc = 0.666, hitrate = 0.25, mrr = 0.09

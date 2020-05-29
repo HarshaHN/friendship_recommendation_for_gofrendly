@@ -1,7 +1,7 @@
 #%%
 import pandas as pd
 import pymysql
-from func.sql import sqlquery
+from sql import sqlquery
 
 #%%
 """ Exploratory Data Analysis """
@@ -19,9 +19,9 @@ queries = {
 with sqlquery() as newconn:
     df = newconn.query(queries['01']) 
 
-df.to_hdf("./data/raw/ext.h5", key='01')
+df.to_hdf("../data/common/ext.h5", key='01')
 del queries 
-#info.to_hdf("./data/raw/in.h5", key='info')
+#info.to_hdf("../data/common/in.h5", key='info')
 
 #%%
 """ 2. Classification model """
@@ -49,7 +49,7 @@ def cmodel():
             # count: a. b.13,684 c. 
             'bf' : "SELECT user_id, blocked_id FROM blocked_users",
 
-            # 2. Viewed users but not added as friends (hard negative)
+            # 2. Viewed users but not added as friends (soft negative)
             # Viewed users count: a. b.4,464,793(4,846,799) c. 
             'vnf' : "SELECT a.user_id, a.seen_id FROM seen_users a\
             LEFT JOIN friends b\
@@ -67,19 +67,19 @@ def cmodel():
     
     with sqlquery() as newconn:
         mf = newconn.query(queries['mf']) 
-        mf.to_hdf("./data/raw/cmodel.h5", key='mf')
+        mf.to_hdf("../data/common/network.h5", key='mf')
         print('--> mf\' query finished ')
         af = newconn.query(queries['af']) 
-        af.to_hdf("./data/raw/cmodel.h5", key='af')
+        af.to_hdf("../data/common/network.h5", key='af')
         print('--> af\' query finished ')
         bf = newconn.query(queries['bf'])
-        bf.to_hdf("./data/raw/cmodel.h5", key='bf')
+        bf.to_hdf("../data/common/network.h5", key='bf')
         print('--> bf\' query finished ')
         vnf = newconn.query(queries['vnf']) 
-        vnf.to_hdf("./data/raw/cmodel.h5", key='vnf')
+        vnf.to_hdf("../data/common/network.h5", key='vnf')
         print('--> vnf\' query finished ')
         uf = newconn.query(queries['uf']) 
-        uf.to_hdf("./data/raw/cmodel.h5", key='uf')
+        uf.to_hdf("../data/common/network.h5", key='uf')
         print('--> uf\' query finished ')
 
     return [mf, af, bf, vnf, uf]
@@ -91,14 +91,14 @@ import pandas as pd
 import itertools
 
 """ Data prep for C model """
-users = pd.read_hdf("./data/raw/in.h5", key='info')
+users = pd.read_hdf("../data/common/in.h5", key='info')
 
-mf = pd.read_hdf("./data/raw/cmodel.h5", key='mf')
-af = pd.read_hdf("./data/raw/cmodel.h5", key='af')
+mf = pd.read_hdf("../data/common/network.h5", key='mf')
+af = pd.read_hdf("../data/common/network.h5", key='af')
 
-bf = pd.read_hdf("./data/raw/cmodel.h5", key='bf')
-vnf = pd.read_hdf("./data/raw/cmodel.h5", key='vnf')
-uf = pd.read_hdf("./data/raw/cmodel.h5", key='uf')
+bf = pd.read_hdf("../data/common/network.h5", key='bf')
+vnf = pd.read_hdf("../data/common/network.h5", key='vnf')
+uf = pd.read_hdf("../data/common/network.h5", key='uf')
 
 
 #%%

@@ -6,14 +6,17 @@ import pandas as pd
 import networkx as nx
 import random
 
-class recstwo():
+class recsys():
 
-    def __init__(self, num, emb, K):
-        #super(recstwo, self).__init__(num, emb, K, mod=0)
+    def __init__(self, num, emb, K, nntype='cosine'):
         self.num = num
         self.emb = emb
         self.K = K
-        self.neigh = NearestNeighbors(n_neighbors=self.K)
+        NN = {
+            'knn' : NearestNeighbors(n_neighbors=self.K),
+            'cosine': NearestNeighbors(n_neighbors=self.K, algorithm='brute', metric='cosine')
+            }
+        self.neigh = NN[nntype]
         self.neigh.fit(emb)
         print('-> Model initialised.')
 
@@ -22,11 +25,11 @@ class recstwo():
         df = pd.DataFrame({'id': range(self.num)}) #num of nodes in graph G
         
         #validation set
-        valnx = nx.Graph()
+        actualG = nx.Graph()
         # pos = tuple(zip(pos[0],pos[1]))
-        valnx.add_edges_from(pos)
-        df['val'] = df.index
-        df['val'] = df['id'].apply(lambda x: list(valnx.neighbors(x)) if x in valnx else -1)
+        actualG.add_edges_from(pos)
+        df['actual'] = df.index
+        df['actual'] = df['id'].apply(lambda x: list(actualG.neighbors(x)) if x in actualG else -1)
         
         """ #To filter-out seen users
         tempdf = df['id'] #load the tempdf = df['ids', 'filtered']
@@ -37,10 +40,10 @@ class recstwo():
 
         # Eval metrics
         df['hitrate'] = df.index; df['mrr'] = df.index
-        df['hitrate'] = df['hitrate'].apply(lambda x: self.hitrate(df.loc[x, 'val'], df.loc[x, 'recs']) if df.loc[x, 'val'] != -1 else 0)
-        df['mrr'] = df['mrr'].apply(lambda x: self.mrr(df.loc[x, 'val'], df.loc[x, 'recs']) if df.loc[x, 'hitrate']>0 else 0)
+        df['hitrate'] = df['hitrate'].apply(lambda x: self.hitrate(df.loc[x, 'actual'], df.loc[x, 'recs']) if df.loc[x, 'actual'] != -1 else 0)
+        df['mrr'] = df['mrr'].apply(lambda x: self.mrr(df.loc[x, 'actual'], df.loc[x, 'recs']) if df.loc[x, 'hitrate']>0 else 0)
 
-        size = valnx.number_of_nodes()
+        size = actualG.number_of_nodes()
         self.mrr_avg = round(df['mrr'].sum()/size, 3)
         self.hitrate_avg= round(df['hitrate'].sum()/size, 3)
         
@@ -48,11 +51,9 @@ class recstwo():
         return [df, self.mrr_avg, self.hitrate_avg]
 
     def pinrecs(self, user):
-        # Get K-NN of user who satisfy user's settings.
-        res = self.neigh.kneighbors(self.emb[user][None,:], self.K, return_distance=False)
+        res = self.neigh.kneighbors([self.emb[user]], self.K, return_distance=False)[0]
         # res = random.sample(range(self.num), self.K)
-        #pinrecs = gmodel.knn(self, user) 
-        return list(res[0])
+        return list(res[1:])
 
     @staticmethod
     def mrr(val, recs):
@@ -68,22 +69,3 @@ class recstwo():
 
     def eval(self):
         return [self.hitrate_avg, self.mrr_avg] #self.auc
-
-
-#%%-----------------
-"""
-class gmodel:
-    
-    def __init__(self, num, emb, K, mod=0):
-        self.num = num
-        self.emb = emb
-        from sklearn.neighbors import NearestNeighbors
-        self.neigh = NearestNeighbors(n_neighbors=K)
-        self.neigh.fit(emb)
-        print('-> Model initialised.')
-    
-    def knn(self, user, K):
-        self.neigh.kneighbors(X, K, return_distance=False)
-                #res = 0 #self.model.knn(user, K)
-        return random.sample(range(self.num), K)
-"""

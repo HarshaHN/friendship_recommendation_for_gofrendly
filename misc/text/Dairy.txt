@@ -1,16 +1,28 @@
 Plan ahead (for the rest of the thesis):
-1. Other links, all 120,000 users, isolated nodes.
-2. Feature scaling and inclusion.
-3. one and two revisit, integration, organise, improvements, optimization and experiments.
+1. two performance optimization and experiments.
+   lossfuncs & NN: cosine, pinsage, l2 dist; architectural changes!?; feature intro; (layers, margin, fdim); 
+2. one revisit, integration, organise, improvements, optimization and experiments.
     one: SBERT using GCP API, DNN using Pytorch?, SMOTE, scalar.
-    two: 
-4. Hybrid model, experiments. mrr and hr optimize.
+$$$ Report study and prep $$$
+
+3. Feature scaling and inclusion.
+4. Hybrid model(isolated nodes), experiments. mrr and hr optimize.
 5. Cause for low scores: 60% is max cap, chat friends, user filters, not seen.
 6. Results analysis, Data viz, report, presentation, thesis formalities.
-7. Collab with erwan for software deployment into production.
+7. Adaptable to new additions.
+8. Collab with erwan for software deployment into production.
 40,000 SEK
 
 #========================================================================================
+Weekly post : until May 29, 2020 as follows:
+Pinsage convolution and minibatch is successfully implemented with no deviation from the research paper using Pytorch and DGL. Attached with the training data and thus, training works well. Work on code integration, redundancy removal, data organise. 
+
+Next week targets:
+
+Discussion:
+
+
+
 Discussion outcomes:
 
 Schedule:

@@ -7,7 +7,7 @@ Author: Harsha HN harshahn@kth.se
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import twofunc.pinconv as pinconv
+import pinconv
 import matplotlib.pyplot as plt 
 import itertools
 import dgl
@@ -43,11 +43,15 @@ class gnet():
         self.neg = torch.tensor(neg)
         self.nodesize = self.G.number_of_nodes()
     
-    def config(self, fdim, fsize, layers, opt, lr, margin):
-        
-        self.embed = nn.Embedding(self.nodesize, fdim) #nemb = embed.weight
-        self.G.ndata['feat'] = self.embed.weight #embed.weight = G.ndata['feat']
-        
+    def config(self, fdim, fsize, layers, opt, lr, margin, selectLoss='cosine', embflag=False, nodefeat=None):
+            
+        if embflag:
+            self.embed = nn.Embedding.from_pretrained(nodefeat)
+            fdim = nodefeat.shape[1]
+        else: 
+            self.embed = nn.Embedding(self.nodesize, fdim)
+        self.G.ndata['feat'] = self.embed.weight
+
         # Define the model
         fsize = [fdim]*3
         self.net = PCN(*fsize, layers)
@@ -57,14 +61,23 @@ class gnet():
 
         # Loss function
         self.margin = margin
+        self.selectLoss = selectLoss
         self.loss_values = []
+        
+        if selectLoss == 'cosine':
+            self.input1 = torch.cat((self.pos[0], self.neg[0]))
+            self.input2 = torch.cat((self.pos[1], self.neg[1]))
+            self.target = torch.cat((torch.ones(len(self.pos[0])), torch.ones(len(self.neg[0]))*-1))
 
     def lossfunc(self, newemb, margin):
-        p = torch.mul(newemb[self.pos[0]], newemb[self.pos[1]]).sum(1).mean()
-        n = torch.mul(newemb[self.neg[0]], newemb[self.neg[1]]).sum(1).mean()
-        return F.relu(n - p + margin)
-    
-    def train(self, epochs):
+        if self.selectLoss == 'cosine':
+            return F.cosine_embedding_loss(newemb[self.input1], newemb[self.input2], self.target, margin)
+        elif self.selectLoss == 'pinsage':
+            p = torch.mul(newemb[self.pos[0]], newemb[self.pos[1]]).sum(1).mean()
+            n = torch.mul(newemb[self.neg[0]], newemb[self.neg[1]]).sum(1).mean()
+            return F.relu(n - p + margin)
+            
+    def train(self, epochs, lossth):
         for epoch in range(epochs):
             newemb = self.net(self.G, self.embed.weight)
             loss = self.lossfunc(newemb, self.margin)
@@ -75,7 +88,8 @@ class gnet():
 
             print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
             self.loss_values.append(loss.item())
-            if loss.item() < 0.05: break
+            if loss.item() < lossth: 
+                break
 
         plt.plot(self.loss_values)
         #list(net.parameters())[0].grad

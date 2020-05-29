@@ -130,7 +130,7 @@ dmypy.json
 
 
 # input data and models
-input/
+misc/archive/
 models/
 data/
 
@@ -142,11 +142,4 @@ data/
 *.zip
 
 #others
-*.pytest_cache 
-archive/
-archive/anon-gf-mysqldb.tar #April 6th
-archive/anon-gofrendly-20200406-1711.sql
-archive/anon-gf-mysqldb.tar.gz
-archive/anon-gf-mysqldb.tar
-archive/gofrendly.sql
-viz/edges.txt
+*.pytest_cache

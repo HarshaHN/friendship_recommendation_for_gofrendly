@@ -32,7 +32,7 @@ del queries
 from sklearn.externals.joblib import load, dump
 from sklearn.neural_network import MLPClassifier
 from importlib import reload
-import func.cmodel as cmod
+import cmodel as cmod
 reload(cmod)
 
 models = {
@@ -49,7 +49,7 @@ dump(model, './data/model/mlp.pkl')
 """ Recsys for all users 
 [auc, hitrate, mrr] = recsysone(model, *(df, links))
 """
-import func.cmodel as cmod
+import cmodel as cmod
 from importlib import reload
 reload(cmod)
 
