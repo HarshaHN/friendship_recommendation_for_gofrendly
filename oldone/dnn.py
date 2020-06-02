@@ -1,51 +1,9 @@
-#%%--------------------
-""" Compute input: delta(u1, u2) """
-import numpy as np
-import pandas as pd
-from scipy.spatial import distance
 
-class deltas:
-    # delta(uv1, uv2) = [ cosine_sim_sbert, count(intersection(iam, meetFor)) equality(marital, has children), abs_diff(age, lat, lng) ]
-    df = pd.read_hdf("./data/raw/dproc.h5", key='04')
-    ohc_b = [[0,0,0], [1,0,0], [0,1,0], [0,0,1]]
-    ohc_c = np.diag(np.ones(5, dtype=int));  ohc_c[-1] = np.zeros(5, dtype=int)
-    ohc_cc = np.diag(np.ones(3, dtype=int))
-
-    @classmethod
-    def delta(cls, a, b):
-        vec = list()
-
-        #a. cosine_sim_sbert
-        emb1 = cls.df.loc[a, 'emb']; emb2 = cls.df.loc[b, 'emb']
-        if (type(emb1) or type(emb2)) == int: #len(*emb) > 1
-            cos_dist = 0.5
-        else:
-            cos_dist = 0.5 #round(distance.cdist(emb1, emb2, 'cosine')[0][0], 3)
-        vec.append(cos_dist)
-
-        #b. count(intersection(iam, meetFor)) #cls.ohc_b
-        iAm = len((cls.df.loc[a, 'iAm']).intersection(cls.df.loc[b, 'iAm']))
-        meetFor = len((cls.df.loc[a, 'meetFor']).intersection(cls.df.loc[b, 'meetFor']))
-        vec.extend(cls.ohc_b[iAm] + cls.ohc_b[meetFor])
-        
-        #c. xor(marital, children) #ohc_c, ohc_cc
-        ma = int(cls.df.loc[a, 'marital']); mb = int(cls.df.loc[b, 'marital'])
-        marital = cls.ohc_c[ma] if (ma == mb) else cls.ohc_c[-1]
-        vec.extend(marital.tolist())
-
-        ca = int(cls.df.loc[a, 'children']); cb = int(cls.df.loc[b, 'children'])
-        if (ca or cb) == 2:
-            children = cls.ohc_cc[cb] if cb!=2 else cls.ohc_cc[ca] if ca!=2 else [0,1,1]
-        else: 
-            children = cls.ohc_cc[ca] if (ca == cb) else [0,0,0]
-        vec.extend(children)
-
-        #d. abs(age, lat, lng)
-        age = abs(cls.df.loc[a, 'age'] - cls.df.loc[b, 'age'])/10
-        lat = abs(cls.df.loc[a, 'lat'] - cls.df.loc[b, 'lat'])*10
-        lng = abs(cls.df.loc[a, 'lng'] - cls.df.loc[b, 'lng'])*10
-        vec.extend([age, round(lat, 3), round(lng, 3)])
-        return vec
+"""
+Date: 01 Apr 2020
+Author: Harsha harshahn@kth.se
+DNN model for user match
+"""
 
 #%% -----------------------------------------------
 """ Classification model """
@@ -57,7 +15,6 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_auc_score
 from joblib import dump, load
 import time
-#import func.eval as eval
 
 class cmodels:
     #Open dataset, train the model and save

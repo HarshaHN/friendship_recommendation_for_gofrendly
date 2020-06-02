@@ -1,0 +1,27 @@
+data received April 7th.
+
+user filters = 
+
+
+user_details: [ lang, user_id, myStory, platform, platformVersion, appVersion, district, marital, meetForCustom, deviceName, meetFor, describeYourself, children, iAm, iAmCustom, user_details, country, city ]
+
+users: [ lat, minPreferredAge, farFriends, isProfileCompleted, name, roleId, premiumExpireTime, lng, isDeleted, id, maxPreferredAge, birthday, deletedAt, sClub, isPremium, email, updatedAt, lastLogin, googlePlusId, isActive, firebaseUid, surname, file_id, isBanned, createdAt, stripeCustomerId, users, facebookId ]
+
+marital: -1 - n/a, 0 - Single, 1 - In a relationship, 2 - Married, 3 - Its complicated
+children: -1 - n/a, 0 - no children, 1 - have children, 2 - not important
+
+['iAm', #handled
+ 'meetFor', #handled
+  'marital', -1
+  'children', -1
+  'lat', 
+  'lng', 
+  'age', 
+  'emb'
+]
+
+Questions:
+is active, is banned, 
+
+Questions:
+1. How default values of the features?

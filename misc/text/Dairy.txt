@@ -1,8 +1,9 @@
 Plan ahead (for the rest of the thesis):
-1. two performance optimization and experiments.
-   lossfuncs & NN: cosine, pinsage, l2 dist; architectural changes!?; feature intro; (layers, margin, fdim); 
-2. one revisit, integration, organise, improvements, optimization and experiments.
-    one: SBERT using GCP API, DNN using Pytorch?, SMOTE, scalar.
+1. two performance optimization and experiments. For all 120,000 nodes.
+   lossfuncs & NN: cosine, pinsage, l2 dist, mrr & hr; architectural changes: weights for individual?; feature intro; (layers, margin, fdim); 
+2. one performance optimization and experiments.
+    -> (revisit, integration, organise, improvements)
+    -> SBERT using GCP API, DNN using Pytorch?, SMOTE, scalar.
 $$$ Report study and prep $$$
 
 3. Feature scaling and inclusion.
@@ -14,13 +15,50 @@ $$$ Report study and prep $$$
 40,000 SEK
 
 #========================================================================================
-Weekly post : until May 29, 2020 as follows:
-Pinsage convolution and minibatch is successfully implemented with no deviation from the research paper using Pytorch and DGL. Attached with the training data and thus, training works well. Work on code integration, redundancy removal, data organise. 
+Weekly post : May 18 to 31, 2020 as follows:
+Implemented the code for pinsage convolution and minibatch training exactly as the research paper using Pytorch and DGL. Reviewed and tested the code by myself.
+Hyper parameters: node emb dim (fdim), layers in one pinsage convolve (fsize), layers, optimizer (opt), learning rate(lr), margin in the loss.
+a. First training setup: Training dataset (April 7 snapshot), 5532 Stockholm users, 
+positive samples: mutual friends
+negative samples: blocked friends
+fdim = 20, fsize = 3, layers = 5, opt = 'Adam', lr = 1e-3,  margin = 5.0. 
+To begin with unit norm node embeddings were chosen (node features to be chosen), 
+Loss func: dot product of negative emb - dot product of positive emb + margin, it reached zero.
+Prediction: K nearest neighbors on L2 distance of node embeddings.
+Validation set (May 10 snapshot): mutual friends.
+MRR and hitrate metrics for K=500 recommendations: 
+a. train dataset [0.006, 0.091], b. validation dataset [0.002, 0.089].
+
+b. Second prilim effort to improve: Training dataset (April 7 snapshot), 5532 Stockholm users, 
+positive samples: mutual friends, activity friends
+negative samples: blocked friends, viewed profile but not mutual friends.
+
+fdim = 20, fsize = 3, layers = 2, opt = 'Adam', lr = 1e-3,  margin = -1.0. 
+To begin with unit norm node embeddings were chosen (node features to be chosen), 
+Loss func: cosine distance of positive to be 1, and of negative to be -1. Loss reached zero.
+Prediction: K nearest neighbors of cosine distance node embeddings.
+Validation set (May 10 snapshot): mutual friends.
+MRR and hitrate metrics for K=500 recommendations: 
+a. train dataset [0.018, 0.078], b. validation dataset [0.001, 0.079].
+
+Now, the paper achieves hitrate = 67% and MRR = 0.59. So, the above ones are not good. I halted further experiments and proceed after discussing with you. Previously, for graph setup random recommendation had yielded: hitrate = 0.104, mrr = 0.004.
+Also, worked on code integration, redundancy removal, code consistancy, to organise data. 
 
 Next week targets:
+1. organise the code: one.
+2. Feature intro
 
 Discussion:
+a. features revisit. Inclusion to the node embeddings. As seen, we have categorical and numerical features.  total size: 1024 + 16.
+['user_id': int, 'story sbert emb': 1024 float vect, 'iam': {range(0,18)}, 'meetfor': {range(0,18)}, 'birthday':{range(18,100)}, 'marital':{range(-1,3)}, 'children':{range(-1,2)}, 'lat':float, 'lng':float]
 
+b. Experiments: Multiple loss functions are possible such as pinsage, cosine, l2dist, or making it a function of hitrate and mrr?. Model configurations: architectural changes (such as weights for each node?); (layers size, margin, fdim); May be train gnn for all 100,000 users and then offer recommendations specific to the city.
+
+c. How to hybrid dnn-based input: delta of two profiles, output: link prediction, and gnn-based input: node emb, output: K nearest neighbors.
+
+d. Metrics Hitrate and MRR are chosen.
+
+e. What according to you yet to be done for the completion of thesis.
 
 
 Discussion outcomes:

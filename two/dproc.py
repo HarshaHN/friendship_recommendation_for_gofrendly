@@ -20,11 +20,10 @@ class dproc:
     @staticmethod
     def getdata(save = False):
         import pandas as pd
-        ids = pd.read_hdf("../data/common/dproc.h5", key='04').index
-        [trainids, trainpos, trainneg] = dproc.loadlinks() #, trainvnf
+        [ids, trainids, trainpos, trainneg] = dproc.loadlinks()
         print('-> Train set ids and links are finished.')
 
-        # Validation set: friend links who are in trainids
+        # Validation set: new friend connections who are in trainids
         valpos = dproc.deltamf(trainpos, trainids)
         print('-> Validation set friend links are finished.')
 
@@ -87,10 +86,11 @@ class dproc:
     # Load all the training set links from stored files
     @staticmethod
     def loadlinks():
+        ids = pd.read_hdf("../data/common/dproc.h5", key='04').index
         import pickle
         with open('../data/common/train.pkl', 'rb') as f:
             [posids, pos, neg] = pickle.load(f)
-        return [posids, pos, neg]
+        return [ids, posids, pos, neg]
 
 
     #%%

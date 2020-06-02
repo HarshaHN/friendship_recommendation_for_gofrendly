@@ -23,12 +23,17 @@ class dproc:
     @staticmethod
     def loaddata():
         # Stockholm
+        import pandas as pd
+        #['user_id', 'story', 'iam', 'meetfor', 'birthday', 'marital', 'children', 'lat', 'lng']
+        users = pd.read_hdf("../data/common/eda/users.h5", key='01')
+
         import pickle
         with open('../data/common/sublinks.pkl', 'rb') as f: # links.pickle
             [submfs, subafs, subbfs, subvnfs] = pickle.load(f)
-    
+        
         neg = (subbfs | subvnfs); pos = (submfs | subafs) - neg
-        return [list(pos), list(neg)]
+
+        return [users, pos, neg]
 
     # Load validation data
     @staticmethod
@@ -38,16 +43,14 @@ class dproc:
         valpos = valmfs #valpos = (valmfs | valafs) 
         links = set([(a,b) for (a,b) in valpos if (a in trainids) and (b in trainids)])
         valpos = links - set(trainpos) 
-        return list(valpos)
+        return valpos
 
     # Load training and validation data
     @staticmethod
     def getdata():
         # Training set: user profile, friend links
         [users, trainpos, trainneg] = dproc.loaddata()
-        import pandas as pd
-        #['user_id', 'story', 'iam', 'meetfor', 'birthday', 'marital', 'children', 'lat', 'lng']
-        trainids = pd.read_hdf("../data/common/eda/users.h5", key='01').index
+        trainids = users.index
         print('-> 01 Train set ids and links are finished.')
 
         # Validation set: new friend connections
@@ -55,14 +58,14 @@ class dproc:
         print('-> 02 Validation set friend links are finished.')
         
         # with open('../data/one/oneload.pkl', 'wb') as f:
-        #    pickle.dump([trainpos, trainneg, valpos], f)
+        #    pickle.dump([users, trainpos, trainneg, valpos], f)
 
         # Create Networkx graph from trainpos
         # import networkx as nx
 
-        return [trainpos, trainneg, valpos]
+        return [users, trainpos, trainneg, valpos]
 
-    # Data pre-processing
+    # Data pre-processing & Feature Engineering
     @staticmethod
     def preproc(df):
         import pandas as pd
@@ -87,13 +90,13 @@ class dproc:
         mycleanse = cleanse()
         df['story'] = df['story'].apply(lambda x: mycleanse.cleanse(x))
         
-        # df.to_hdf("../data/one/users.h5", key='02') # df = pd.read_hdf("../data/one/users.h5", key='02')
+        # df.to_hdf("../data/one/users.h5", key='02')
 
         """ 02. stories translation with GCP """
         # df = pd.read_hdf("../data/one/users.h5", key='02')
         from gcp import gcpserver
         df['story'] = df['story'].apply(lambda x: gcpserver.gcptrans(x) if x!=-1 else -1)
-        # df['story'].to_hdf("../data/one/users.h5", key='03') # df['story']=pd.read_hdf("../data/one/users.h5", key='03')
+        # df['story'].to_hdf("../data/one/users.h5", key='03')
         
         """ 03. Stories to S-BERT emb """
         from sentence_transformers import SentenceTransformer
@@ -104,56 +107,12 @@ class dproc:
         df['emb'] = df['story'].apply(lambda x: sbertmodel.encode([x]) if x!=-1 else -1)
         print("-> S-BERT embedding finished.", (time.time() - before)) #534 sec
         df.drop(columns = 'story', inplace = True)
-        # df['emb'].to_hdf("../data/one/users.h5", key='04') # df['emb']=pd.read_hdf("../data/one/users.h5", key='04')
+        # df['emb'].to_hdf("../data/one/users.h5", key='04')
+
+        # Feature scaling
         
-        #df.to_hdf("../data/one/users.h5", key='05')
+        # df.to_hdf("../data/one/users.h5", key='05')
         return df
-    
-    # Feature Engineering
-    @staticmethod
-    def feature(feat):        
-        # feat = pd.read_hdf("../data/one/users.h5", key='05')
-        import numpy as np
-        def onehotencode(input, dim):
-            onehot = np.zeros(dim, dtype=int)
-
-            if input == {''}:
-                return onehot
-            elif input == '-1' or -1:
-                input = [-1]
-            elif type(input) == set:
-                input = list(input)
-            
-            for el in input:
-                ind = int(itm)
-                if ind < dim: onehot[ind] = 1
-
-            return onehot
-
-        feat['cat'] = feat.index
-        feat['cat'] = feat['cat'].apply(lambda x: np.concatenate(( onehotencode(feat.iam[x], 18), onehotencode(feat.meetfor[x], 19), onehotencode(feat.marital[x], 5), onehotencode(feat.kids[x], 4) )))
-
-        feat = feat.drop(columns = ['iam', 'meetfor', 'marital', 'kids'])
-        
-        from sklearn.preprocessing import robust_scale, normalize
-
-        feat['age'] = feat['age'].clip(18, 100)
-        feat.age = robust_scale(feat.age.to_numpy()[:, None])
-        feat.lat = robust_scale(feat.lat.to_numpy()[:, None])
-        feat.lng = robust_scale(feat.lng.to_numpy()[:, None])
-
-        feat['num'] = feat.index
-        feat['num'] = feat['num'].apply(lambda x: [feat.age[x], feat.lat[x], feat.lng[x]])
-        feat = feat.drop(columns = ['age', 'lat', 'lng'])
-
-        #feat.to_hdf("../data/one/feat.h5", key='01')
-
-        return df
-
-
-
-
-
 
 
 #%%-------------
