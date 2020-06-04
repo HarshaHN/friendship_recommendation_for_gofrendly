@@ -1,143 +1,157 @@
+#%%-------------
 """
 Date: 02 March 2020
 Goal: 01 Data processing for one.py
 Author: Harsha HN harshahn@kth.se
 """
 
-#%%-------------
 """ 01. Data Pre-processing """
+import pickle
+import itertools
+import numpy as np
+import pandas as pd
+import dgl
+
 class dproc:
 
-    # Load all the training set data from stored files
+    # Load all the links of training dataset
     @staticmethod
-    def loadsql():
-        mf = pd.read_hdf("../data/common/eda/network.h5", key='mf')
-        af = pd.read_hdf("../data/common/eda/network.h5", key='af')
-        bf = pd.read_hdf("../data/common/eda/network.h5", key='bf')
-        vnf = pd.read_hdf("../data/common/eda/network.h5", key='vnf')
-        print('-> df files are loaded')
+    def trainlinks():
+        mf = pd.read_hdf("../data/common/train/network.h5", key='mf')
+        af = pd.read_hdf("../data/common/train/network.h5", key='af')
+        bf = pd.read_hdf("../data/common/train/network.h5", key='bf')
+        vnf = pd.read_hdf("../data/common/train/network.h5", key='vnf')
+        print('-> Training df files are loaded')
+        return [mf, af, bf, vnf]
 
-        return [users, mf, af, bf, vnf] 
-
-    # Load all the data
+    # Load all the links of validation dataset
     @staticmethod
-    def loaddata():
-        # Stockholm
-        import pickle
-        with open('../data/common/sublinks.pkl', 'rb') as f: # links.pickle
-            [submfs, subafs, subbfs, subvnfs] = pickle.load(f)
-    
-        neg = (subbfs | subvnfs); pos = (submfs | subafs) - neg
-        return [list(pos), list(neg)]
+    def vallinks():
+        mf = pd.read_hdf("../data/common/val/network.h5", key='mf')
+        #af = pd.read_hdf("../data/common/val/network.h5", key='af')
+        #bf = pd.read_hdf("../data/common/val/network.h5", key='bf')
+        #vnf = pd.read_hdf("../data/common/val/network.h5", key='vnf')
+        print('-> Validation df files are loaded')
+        return [mf]#, af]#, bf, vnf] 
 
-    # Load validation data
+    """
+    # Load all the links of test dataset
     @staticmethod
-    def loadval(trainpos, trainids):
-        valmf = pd.read_hdf("../data/common/val/sqldata.h5", key='mf')
-        valmfs = set(tuple(zip(valmf.user_id, valmf.friend_id)))
-        valpos = valmfs #valpos = (valmfs | valafs) 
-        links = set([(a,b) for (a,b) in valpos if (a in trainids) and (b in trainids)])
-        valpos = links - set(trainpos) 
-        return list(valpos)
-
-    # Load training and validation data
+    def testlinks(): 
+        mf = pd.read_hdf("../data/common/test/network.h5", key='mf')
+        af = pd.read_hdf("../data/common/test/network.h5", key='af')
+        #bf = pd.read_hdf("../data/common/test/network.h5", key='bf')
+        #vnf = pd.read_hdf("../data/common/test/network.h5", key='vnf')
+        print('-> Test df files are loaded')
+        return [mf, af]#, bf, vnf]    
+    """    
+    # Load all the links from stored files
     @staticmethod
-    def getdata():
-        # Training set: user profile, friend links
-        [users, trainpos, trainneg] = dproc.loaddata()
-        import pandas as pd
-        #['user_id', 'story', 'iam', 'meetfor', 'birthday', 'marital', 'children', 'lat', 'lng']
-        trainids = pd.read_hdf("../data/common/eda/users.h5", key='01').index
-        print('-> 01 Train set ids and links are finished.')
+    def makepairs(links, trainflag):
+        if trainflag==1:
+            [mf, af, bf, vnf]  = links
+            mfs = set(tuple(zip(mf.user_id, mf.friend_id))) #16,108
+            af = af.groupby(['activity_id'])['user_id'].apply(list)
+            afs = set()
+            for a,b in af.iteritems():
+                afs.update(set(itertools.combinations(b, 2)))
+            bfs = set(tuple(zip(bf.user_id, bf.blocked_id))) #13,684
+            vnfs = set(tuple(zip(vnf.user_id, vnf.seen_id)))
+            print('-> Pairs have been made')
+            return [mfs, afs, bfs, vnfs] 
 
-        # Validation set: new friend connections
-        valpos = dproc.loadval(trainpos, trainids)
-        print('-> 02 Validation set friend links are finished.')
+        elif trainflag==0:
+            [mf, af]  = links
+            mfs = set(tuple(zip(mf.user_id, mf.friend_id))) #16,108
+            af = af.groupby(['activity_id'])['user_id'].apply(list)
+            afs = set()
+            for a,b in af.iteritems():
+                afs.update(set(itertools.combinations(b, 2)))
+            print('-> Pairs have been made')
+            return [mfs, afs] 
+
+    # Filter relevant links
+    @staticmethod
+    def sublinks(ids, links, trainflag):
+        def sub(links, subids):
+            return set([(a,b) for (a,b) in links if ((a in subids) and (b in subids))])
         
-        # with open('../data/one/oneload.pkl', 'wb') as f:
-        #    pickle.dump([trainpos, trainneg, valpos], f)
+        if trainflag==1:
+            [mfs, afs, bfs, vnfs] = links        
+            submfs, subafs, subbfs, subvnfs = sub(mfs, ids), sub(afs, ids), sub(bfs, ids), sub(vnfs, ids)
+            neg = (subbfs | subvnfs); pos = (submfs | subafs) - neg
+            return [list(pos), list(neg)]
+        elif trainflag==0:
+            [mfs, afs] = links        
+            submfs, subafs = sub(mfs, ids), sub(afs, ids)
+            pos = (submfs | subafs)
+            return list(pos)
 
-        # Create Networkx graph from trainpos
-        # import networkx as nx
+    # Training links
+    @staticmethod
+    def getlinks(ids):
+        # Training links.
+        [trainpos, trainneg] = dproc.sublinks(ids, dproc.makepairs(dproc.trainlinks(), trainflag=1), trainflag=1)
+        print('-> 01 Trainings links are captured.')
 
-        return [trainpos, trainneg, valpos]
+        # Validation links
+        #valpos = dproc.sublinks(ids, dproc.makepairs(dproc.vallinks(), trainflag=0), trainflag=0)
+        #valpos = set(valpos) - set(trainpos)
+        print('-> 02 Validation links are captured.')
+
+        # Test links
+        #testpos = dproc.sublinks(ids, dproc.makepairs(dproc.testlinks(), trainflag=0), trainflag=0)
+        #testpos = set(testpos) - set(valpos) - set(trainpos)
+        print('-> 03 Test links are captured.')
+
+        return [trainpos, trainneg]#, valpos]#, testpos
 
     # Data pre-processing
     @staticmethod
     def preproc(df):
-        import pandas as pd
         # df = ['user_id', 'story', 'iam', 'meetfor', 'birthday', 'marital', 'children', 'lat', 'lng']
         df.columns = ['id', 'story', 'iam', 'meetfor', 'age', 'marital', 'kids', 'lat', 'lng']
         df.set_index('id', inplace = True)
         
         """ 01. Data cleanse and imputation """
-    
+
         #'iam', 'meetfor' to set()
-        df['iam'] = df['iam'].apply(lambda x: set(x.split(',')) if x != None else set())
-        df['meetfor'] = df['meetfor'].apply(lambda x: set(x.split(',')) if x != None else set())
+        df['iam'] = df['iam'].apply(lambda x: list(x.split(',')) if ((x!=None) and (len(x)>0)) else -1).astype('int32')
+        df['meetfor'] = df['meetfor'].apply(lambda x: list(x.split(',')) if ((x!=None) and (len(x)>0)) else -1).astype('int32')
         
         #'birthday' to age
-        df['age'] = df['age'].apply(lambda x: int((x.today() - x).days/365))
+        df['age'] = df['age'].apply(lambda x: int((x.today() - x).days/365)).clip(18, 100).astype('int32')
         
         # has children, marital
-        df['marital'].fillna(-1, inplace=True)
-        df['kids'].fillna(-1, inplace=True)        
+        df['marital'] = df['marital'].fillna('-1').astype('int32') # df.marital.value_counts().keys()
+        df['kids'] = df['kids'].fillna('-1').astype('int32')       # df.kids.value_counts().keys()
 
         # story
         mycleanse = cleanse()
         df['story'] = df['story'].apply(lambda x: mycleanse.cleanse(x))
         
-        # df.to_hdf("../data/one/users.h5", key='02') # df = pd.read_hdf("../data/one/users.h5", key='02')
+        # df.to_hdf("../data/one/trainfeat.h5", key='01')
 
         """ 02. stories translation with GCP """
-        # df = pd.read_hdf("../data/one/users.h5", key='02')
-        from gcp import gcpserver
-        df['story'] = df['story'].apply(lambda x: gcpserver.gcptrans(x) if x!=-1 else -1)
-        # df['story'].to_hdf("../data/one/users.h5", key='03') # df['story']=pd.read_hdf("../data/one/users.h5", key='03')
+        # df['story'] = pd.read_hdf("../data/one/stories.h5", key='01')
         
         """ 03. Stories to S-BERT emb """
-        from sentence_transformers import SentenceTransformer
-        sbertmodel = SentenceTransformer('roberta-large-nli-mean-tokens')
+        df['emb'] = df['story'].apply(lambda x: np.random.randn(1204) if x!=-1 else -1)
+        # df['emb'] = pd.read_hdf("../data/one/emb.h5", key='01')
+        #df.drop(columns=['story'])
 
-        # Generate embeddings
-        before = time.time() #listup = lambda x: [x]
-        df['emb'] = df['story'].apply(lambda x: sbertmodel.encode([x]) if x!=-1 else -1)
-        print("-> S-BERT embedding finished.", (time.time() - before)) #534 sec
-        df.drop(columns = 'story', inplace = True)
-        # df['emb'].to_hdf("../data/one/users.h5", key='04') # df['emb']=pd.read_hdf("../data/one/users.h5", key='04')
-        
-        #df.to_hdf("../data/one/users.h5", key='05')
+        #df.to_hdf("../data/one/trainfeat.h5", key='02')
         return df
     
-    # Feature Engineering
+    # Feature Engineering: categorical and numerical features
     @staticmethod
     def feature(feat):        
-        # feat = pd.read_hdf("../data/one/users.h5", key='05')
-        import numpy as np
-        def onehotencode(input, dim):
-            onehot = np.zeros(dim, dtype=int)
-
-            if input == {''}:
-                return onehot
-            elif input == '-1' or -1:
-                input = [-1]
-            elif type(input) == set:
-                input = list(input)
-            
-            for el in input:
-                ind = int(itm)
-                if ind < dim: onehot[ind] = 1
-
-            return onehot
-
-        feat['cat'] = feat.index
-        feat['cat'] = feat['cat'].apply(lambda x: np.concatenate(( onehotencode(feat.iam[x], 18), onehotencode(feat.meetfor[x], 19), onehotencode(feat.marital[x], 5), onehotencode(feat.kids[x], 4) )))
-
-        feat = feat.drop(columns = ['iam', 'meetfor', 'marital', 'kids'])
+        # import pandas as pd; import numpy as np
+        # feat = pd.read_hdf("../data/one/trainfeat.h5", key='02')
         
-        from sklearn.preprocessing import robust_scale, normalize
+        # 01. Numerical data        
+        from sklearn.preprocessing import robust_scale
 
-        feat['age'] = feat['age'].clip(18, 100)
         feat.age = robust_scale(feat.age.to_numpy()[:, None])
         feat.lat = robust_scale(feat.lat.to_numpy()[:, None])
         feat.lng = robust_scale(feat.lng.to_numpy()[:, None])
@@ -146,18 +160,56 @@ class dproc:
         feat['num'] = feat['num'].apply(lambda x: [feat.age[x], feat.lat[x], feat.lng[x]])
         feat = feat.drop(columns = ['age', 'lat', 'lng'])
 
-        #feat.to_hdf("../data/one/feat.h5", key='01')
+        # 02. Categorical data
+        def onehotencode(input, dim):
+            onehot = np.zeros(dim, dtype=int)
+            try:
+                if isinstance(input, (int, np.integer)):
+                    onehot[input] = 1
+                else: 
+                    for el in input:
+                        ind = int(el)
+                        if ind < dim: onehot[ind] = 1
+            except:
+                print(input)
+            return onehot
 
+        feat['cat'] = feat.index
+        feat['cat'] = feat['cat'].apply(lambda x: np.concatenate(( onehotencode(feat.iam[x], 18), onehotencode(feat.meetfor[x], 18), onehotencode(feat.marital[x], 5), onehotencode(feat.kids[x], 4) )))
+        feat = feat.drop(columns = ['iam', 'meetfor', 'marital', 'kids', 'story'])
+
+        #feat.to_hdf("../data/one/trainfeat.h5", key='03') # ['emb', 'cat', 'num']
         return df
 
+    # Load the training links
+    @staticmethod
+    def loadlinks():
+        import pickle
+        # import pandas as pd
+        # feat = pd.read_hdf("../data/one/trainfeat.h5", key='03') # ['emb', 'cat', 'num'] #dproc: preproc >> feature
+        # [trainpos, trainneg] = dproc.getlinks(feat.index) 
+        # with open('../data/one/sublinks.pkl', 'wb') as f: # links.pickle
+        #    pickle.dump([trainpos, trainneg], f) #402761, 72382 
 
+        with open('../data/one/sublinks.pkl', 'rb') as f: # links.pickle
+            [trainpos, trainneg] = pickle.load(f) #402761, 72382
+        return [trainpos, trainneg]
 
-
-
+    # DGL graph
+    @staticmethod
+    def makedgl(num, pos):
+        G = dgl.DGLGraph()
+        G.add_nodes(num)
+        G.add_edges(G.nodes(), G.nodes()) #self loop all
+        G.add_edges(*zip(*pos)) #add edges list(zip(*pos))
+        G = dgl.to_bidirected(G) 
+        print('-> Graph G has %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
+        return G        
 
 
 #%%-------------
-""" 02. Cleanse story """
+""" 02. Functional """
+# Cleanse the text
 import re
 import emoji #conda install -c conda-forge emoji
 class cleanse:
@@ -175,11 +227,3 @@ class cleanse:
             if len(text) < 10: 
                 text = -1 #short texts
         return text
-
-#%%----------------
-"""
-import h5py
-f = h5py.File('../data/common/eda/location.h5', 'r')
-[key for key in f.keys()]
-
-"""

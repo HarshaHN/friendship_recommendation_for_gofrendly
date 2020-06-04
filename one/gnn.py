@@ -1,106 +1,4 @@
 """
-Date: 2 June 2020
-Goal: 01 Neural network and training.
-Author: Harsha HN harshahn@kth.se
-"""
-#%%---------------
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt 
-import itertools
-
-#%%------------------
-#Define the neural network
-class neuralnet(nn.Module):
-    def __init__(self, input_size, output_size, layers, dropout=0.1):
-        super().__init__()
-        # kernels
-        #self.bnorm_num = nn.BatchNorm1d(num_numerical_cols)
-        all_layers = []
-        #inputsize = num_categorical_cols + num_numerical_cols
-        for i in layers:
-            all_layers.append(nn.Linear(input_size, i))
-            all_layers.append(nn.ReLU(inplace=True))
-            all_layers.append(nn.BatchNorm1d(i))
-            all_layers.append(nn.Dropout(dropout))
-            input_size = i
-
-        all_layers.extend([ nn.Linear(layers[-1], output_size),
-                            nn.ReLU(inplace=True),
-                            nn.BatchNorm1d(output_size)])
-        self.layers = nn.Sequential(*all_layers)
-        # initializations
-        self.layers.apply(self._init_weights)
-
-    def forward(self, x):
-        #x_numerical = self.batch_norm_num(x_numerical)
-        #x = torch.cat([x_categorical, x_numerical], 1)
-        x = self.layers(x)
-        return x
-    
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
-            nn.init.constant_(m.bias, 0.0)
-
-#%%---------------------------
-class net:
-   
-    def __init__(self, inputs, output_size, layers, dropout, lr, opt, cosine_lossmargin, pos, neg):
-        
-        # Features
-        self.inputs = inputs  #self.embed = nn.Embedding.from_pretrained(inputs)
-        users, input_size = inputs.shape
-
-        # Define the model
-        self.net = neuralnet(input_size, output_size, layers, dropout)
-
-        # Define the optimizer
-        self.lr = lr
-        self.optimizer = getattr(torch.optim, opt)(self.net.parameters(), self.lr)
-
-        # Loss function
-        self.margin = cosine_lossmargin
-        #self.lossfn = lossfn
-        self.loss_values = []
-
-        # Training samples
-        self.pos = torch.tensor(list(zip(*pos))) #pos = tuple(zip(pos[0],pos[1]))
-        self.neg = torch.tensor(list(zip(*neg)))
-        
-        self.input1 = torch.cat((self.pos[0], self.neg[0]))
-        self.input2 = torch.cat((self.pos[1], self.neg[1]))
-        self.target = torch.cat((torch.ones(len(self.pos[0])), torch.ones(len(self.neg[0]))*-1))
-
-    def lossfunc(self, newemb, margin):
-        return F.cosine_embedding_loss(newemb[self.input1], newemb[self.input2], self.target, margin)
-
-    def train(self, epochs, lossth):
-        for i in range(epochs+1):
-            newemb = self.net(self.inputs)
-            loss = self.lossfunc(newemb, self.margin)
-
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-
-            if i%10 == 0:
-                print('Epoch %d | Loss: %.4f' % (i, loss.item()))
-            self.loss_values.append(loss.item())
-            if loss.item() < lossth: 
-                break
-
-        plt.plot(self.loss_values)
-        return newemb.detach()
-    
-    def eval(pos):
-        pass
-
-
-
-# %%
-"""
 Date: 22 May 2020
 Goal: 02 Complete network and training.
 Author: Harsha HN harshahn@kth.se
@@ -204,3 +102,6 @@ class gnet(nn.Module):
     
     def eval(pos):
         pass
+
+
+# %%

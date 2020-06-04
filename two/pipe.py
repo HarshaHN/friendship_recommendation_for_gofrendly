@@ -55,7 +55,7 @@ class pipeflow:
         
         # df.set_index('user_id', inplace = True)
         print('Hitrate =', self.hitrate_avg, 'MRR =', self.mrr_avg)
-        return [df, [self.hitrate_avg, self.mrr_avg]]
+        return [df, self.hitrate_avg, self.mrr_avg]
 
     def krecs(self, user):
         res = list(self.neigh.kneighbors([self.emb[user]], self.K, return_distance=False)[0][1:])

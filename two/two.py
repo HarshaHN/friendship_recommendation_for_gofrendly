@@ -8,9 +8,8 @@ import pandas as pd
 
 #%%----------------------
 """ 01. Load the data into DGL """
-#import dproc
+import dproc
 #from importlib import reload; reload(dproc)
-from dproc import dproc
 
 Load = 1
 if Load == 1:

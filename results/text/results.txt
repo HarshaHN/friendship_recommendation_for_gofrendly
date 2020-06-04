@@ -1,4 +1,56 @@
 
+Cosine encoder: K=500
+one: 14948
+a. train: Hitrate = 0.032 MRR = 0.007
+b. val: 
+c. test:
+
+two:
+a. train:
+b. val:
+c. test:
+
+--------------------------------------------------
+Cosine encoder: K=500
+one: 14948
+a. train: 
+b. val: 
+c. test:
+
+two:
+a. train:
+b. val:
+c. test:
+
+--------------------------------------------------
+
+Random recs: K = 500
+one: 14948
+a. train: Hitrate = 0.033 MRR = 0.008
+b. val: 
+c. test:
+
+two:
+a. train: Hitrate = 0.104, mrr = 0.004
+b. val:
+c. test:
+
+
+--------------------------------------------------
+ONE
+model = net(inputs = X,
+            output_size = 24,
+            layers = [48, 36, 30],
+            dropout = 0.1,
+            lr = 1e-3,
+            opt = 'Adam',
+            cosine_lossmargin = 0,
+            pos = trainpos, #72382
+            neg = trainneg) #402761
+
+# model.train(epochs = 200, lossth=0.05)
+loss = 0.2190
+Hitrate = 0.042 MRR = 0.012
 
 --------------------------------------------------
 mod.config( fdim = 20, fsize = 3,
@@ -17,14 +69,10 @@ fdim = 20, fsize = 3,
             margin = 5.0,
 mrr, hitrate
 train: [0.006, 0.091] val: [0.002, 0.089]
---------------------------------------------------
 
-gnn: hitrate = 0.104, mrr = 0.004 K = 500 random
---------------------------------------------------
-sbert auroc = 0.666, hitrate = 0.25, mrr = 0.09
+
 -----------------------------------------------------------------------------------------
 EDA
-----------
 
 main['city'].value_counts()
 Stockholm       14948 <<
