@@ -130,9 +130,10 @@ dmypy.json
 
 
 # input data and models
-misc/archive/
+misc/
 models/
-data/
+data/raw
+
 
 # data files
 *.csv

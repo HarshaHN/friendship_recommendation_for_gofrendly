@@ -1,56 +1,29 @@
 
-Cosine encoder: K=500
-one: 14948
-a. train: Hitrate = 0.032 MRR = 0.007
-b. val: 
-c. test:
-
-two:
-a. train:
-b. val:
-c. test:
+PinSAGE: K=500
+a. train: Hitrate = 11.8 MRR = 2.3
+b. val:  c. test:
 
 --------------------------------------------------
 Cosine encoder: K=500
 one: 14948
 a. train: 
-b. val: 
-c. test:
+1. raw X: Hitrate = 23.3 MRR = 3.8; 
+with encoder: Hitrate = 4.6 MRR = 1.2;
+random init: 4.8, 1.1; (with encoder max 5.4, 1.5)
+setup: margin = -0.5, Loss: 0.5526, outsize 10, no layers.
 
-two:
-a. train:
-b. val:
-c. test:
+b. val: c. test:
 
 --------------------------------------------------
 
 Random recs: K = 500
-one: 14948
-a. train: Hitrate = 0.033 MRR = 0.008
+users: 14948
+a. train: Hitrate = 3.2 MRR = 0.8
 b. val: 
 c. test:
 
-two:
-a. train: Hitrate = 0.104, mrr = 0.004
-b. val:
-c. test:
-
-
 --------------------------------------------------
-ONE
-model = net(inputs = X,
-            output_size = 24,
-            layers = [48, 36, 30],
-            dropout = 0.1,
-            lr = 1e-3,
-            opt = 'Adam',
-            cosine_lossmargin = 0,
-            pos = trainpos, #72382
-            neg = trainneg) #402761
 
-# model.train(epochs = 200, lossth=0.05)
-loss = 0.2190
-Hitrate = 0.042 MRR = 0.012
 
 --------------------------------------------------
 mod.config( fdim = 20, fsize = 3,

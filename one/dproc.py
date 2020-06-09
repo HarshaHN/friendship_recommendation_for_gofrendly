@@ -150,11 +150,10 @@ class dproc:
         # feat = pd.read_hdf("../data/one/trainfeat.h5", key='02')
         
         # 01. Numerical data        
-        from sklearn.preprocessing import robust_scale
-
-        feat.age = robust_scale(feat.age.to_numpy()[:, None])
-        feat.lat = robust_scale(feat.lat.to_numpy()[:, None])
-        feat.lng = robust_scale(feat.lng.to_numpy()[:, None])
+        #from sklearn.preprocessing import robust_scale
+        #feat.age = robust_scale(feat.age.to_numpy()[:, None])
+        #feat.lat = robust_scale(feat.lat.to_numpy()[:, None])
+        #feat.lng = robust_scale(feat.lng.to_numpy()[:, None])
 
         feat['num'] = feat.index
         feat['num'] = feat['num'].apply(lambda x: [feat.age[x], feat.lat[x], feat.lng[x]])
@@ -178,7 +177,7 @@ class dproc:
         feat['cat'] = feat['cat'].apply(lambda x: np.concatenate(( onehotencode(feat.iam[x], 18), onehotencode(feat.meetfor[x], 18), onehotencode(feat.marital[x], 5), onehotencode(feat.kids[x], 4) )))
         feat = feat.drop(columns = ['iam', 'meetfor', 'marital', 'kids', 'story'])
 
-        #feat.to_hdf("../data/one/trainfeat.h5", key='03') # ['emb', 'cat', 'num']
+        #feat.to_hdf("../data/one/trainfeat.h5", key='04') # ['emb', 'cat', 'num']
         return df
 
     # Load the training links

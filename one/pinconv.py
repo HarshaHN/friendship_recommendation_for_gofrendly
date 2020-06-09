@@ -13,7 +13,6 @@ import dgl.function as fn
 import torch.nn.functional as F
 #dgl.load_backend('pytorch')
 
-#%%-----------------------------------------
 """ 01. PinsageConv """
 class PinConv(nn.Module):
    
@@ -51,8 +50,19 @@ class PinConv(nn.Module):
         graph = graph.local_var()
 
         graph.srcdata['h'] = F.relu(self.Q(feat))
-        graph.update_all(fn.copy_src(src='h', out='m'),
-                             fn.sum(msg='m', out='h'))
+        
+        def mfunc(edges):
+            return {'m':edges.src['h'], 'a':edges.data['w']}
+
+        def rfunc(nodes):
+            m = nodes.mailbox['m']
+            a = nodes.mailbox['a'] 
+            res = th.mul(a[:,:,None], m).sum(1)
+            res = res / a.sum(1)[:, None]
+            return {'h': res}
+
+        graph.update_all(mfunc, rfunc)
+
         rst = graph.dstdata['h']
         rst = th.cat([feat, rst], 1)
         rst = F.relu(self.W(rst))
@@ -78,3 +88,4 @@ class PinConv(nn.Module):
         if '_activation' in self.__dict__:
             summary += ', activation={_activation}'
         return summary.format(**self.__dict__)
+

@@ -1,14 +1,17 @@
-d. include random walk into two
+d. include random walk into two, curriculum training, 
 e. random vs. encoder vs. pinsage
 
-
+Tues & wed: implment cosine one.
+thur: hyperparameter tuning and other experiments.
+fri: code for random walk.
+mon:
 
 
 Plan ahead (for the rest of the thesis):
-1. two performance optimization and experiments. For all 120,000 nodes.
+1. two performance.
    lossfuncs & NN: cosine, pinsage, l2 dist, mrr & hr; architectural changes: weights for individual?; feature intro; (layers, margin, fdim); 
 2. one experiments.
-    -> SBERT using GCP API, DNN using Pytorch?, SMOTE, scalar.
+    -> SBERT using GCP API.
 3. Report study and prep
 4. Cause for low scores: 60% is max cap, chat friends, user filters, potential but not seen.
 5. Results analysis, Data viz, report, presentation, thesis formalities.

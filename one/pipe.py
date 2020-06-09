@@ -26,7 +26,7 @@ class pipeflow:
             }
         self.neigh = NN[nntype]
         self.neigh.fit(emb)
-        print('-> Model initialised.')
+        print('-> Nearest neighbor model initialised.')
 
 
     def dfmanip(self, pos):
@@ -54,12 +54,12 @@ class pipeflow:
         self.hitrate_avg= round(df['hitrate'].sum()/size, 3)
         
         # df.set_index('user_id', inplace = True)
-        print('Hitrate =', self.hitrate_avg, 'MRR =', self.mrr_avg)
+        print('Hitrate =', self.hitrate_avg*100, 'MRR =', self.mrr_avg*100)
         return [df, [self.hitrate_avg, self.mrr_avg]]
 
     def krecs(self, user):
         res = list(self.neigh.kneighbors([self.emb[user]], self.K, return_distance=False)[0][1:])
-        #res = random.sample(range(self.num), self.K)
+        # res = random.sample(range(self.num), self.K)
         return res
 
     @staticmethod
