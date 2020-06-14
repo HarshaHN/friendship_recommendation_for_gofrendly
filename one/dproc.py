@@ -61,14 +61,18 @@ class dproc:
             return [mfs, afs, bfs, vnfs] 
 
         elif trainflag==0:
+            [mf] = links 
+            """
             [mf, af]  = links
-            mfs = set(tuple(zip(mf.user_id, mf.friend_id))) #16,108
+            mfs = set(tuple(zip(mf.user_id, mf.friend_id)))  #16,108
             af = af.groupby(['activity_id'])['user_id'].apply(list)
             afs = set()
             for a,b in af.iteritems():
                 afs.update(set(itertools.combinations(b, 2)))
             print('-> Pairs have been made')
             return [mfs, afs] 
+            """
+            return [set(tuple(zip(mf.user_id, mf.friend_id)))]
 
     # Filter relevant links
     @staticmethod
@@ -81,22 +85,36 @@ class dproc:
             submfs, subafs, subbfs, subvnfs = sub(mfs, ids), sub(afs, ids), sub(bfs, ids), sub(vnfs, ids)
             neg = (subbfs | subvnfs); pos = (submfs | subafs) - neg
             return [list(pos), list(neg)]
+            
         elif trainflag==0:
+            [mfs] = links 
+            """
             [mfs, afs] = links        
             submfs, subafs = sub(mfs, ids), sub(afs, ids)
             pos = (submfs | subafs)
-            return list(pos)
+            return list(pos) 
+            """
+            return list(sub(mfs, ids))
+
+        elif trainflag==2:
+            #special case
+            [mfs, afs, bfs, vnfs] = links 
+            subbfs = sub(bfs, ids)
+            submfs = sub(mfs, ids)
+            neg = subbfs; pos = submfs - neg  
+            return [list(pos), list(neg)]
 
     # Training links
     @staticmethod
     def getlinks(ids):
         # Training links.
-        [trainpos, trainneg] = dproc.sublinks(ids, dproc.makepairs(dproc.trainlinks(), trainflag=1), trainflag=1)
+        #[trainpos, trainneg] = dproc.sublinks(ids, dproc.makepairs(dproc.trainlinks(), trainflag=1), trainflag=1)
+        [trainpos, trainneg] = dproc.loadlinks()
         print('-> 01 Trainings links are captured.')
 
         # Validation links
-        #valpos = dproc.sublinks(ids, dproc.makepairs(dproc.vallinks(), trainflag=0), trainflag=0)
-        #valpos = set(valpos) - set(trainpos)
+        valpos = dproc.sublinks(ids, dproc.makepairs(dproc.vallinks(), trainflag=0), trainflag=0)
+        valpos = set(valpos) - set(trainpos)
         print('-> 02 Validation links are captured.')
 
         # Test links
@@ -104,7 +122,7 @@ class dproc:
         #testpos = set(testpos) - set(valpos) - set(trainpos)
         print('-> 03 Test links are captured.')
 
-        return [trainpos, trainneg]#, valpos]#, testpos
+        return [trainpos, trainneg, valpos]#, testpos
 
     # Data pre-processing
     @staticmethod
@@ -202,9 +220,9 @@ class dproc:
         G.add_edges(G.nodes(), G.nodes()) #self loop all
         G.add_edges(*zip(*pos)) #add edges list(zip(*pos))
         G = dgl.to_bidirected(G) 
+        G = dgl.graph(G.edges(), 'user', 'frd')
         print('-> Graph G has %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
-        return G        
-
+        return G  
 
 #%%-------------
 """ 02. Functional """

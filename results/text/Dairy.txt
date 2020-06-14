@@ -1,15 +1,11 @@
-d. include random walk into two, curriculum training, 
-e. random vs. encoder vs. pinsage
+d.  curriculum training,
 
 Tues & wed: implment cosine one.
 thur: hyperparameter tuning and other experiments.
-fri: code for random walk.
-mon:
-
 
 Plan ahead (for the rest of the thesis):
 1. two performance.
-   lossfuncs & NN: cosine, pinsage, l2 dist, mrr & hr; architectural changes: weights for individual?; feature intro; (layers, margin, fdim); 
+   mrr & hr; architectural changes: weights for individual?; feature intro; (layers, margin, fdim); 
 2. one experiments.
     -> SBERT using GCP API.
 3. Report study and prep

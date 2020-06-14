@@ -3,6 +3,7 @@ Date: 2 June 2020
 Goal: 01 Neural network and training.
 Author: Harsha HN harshahn@kth.se
 """
+
 #%%---------------
 import torch
 import torch.nn as nn
@@ -52,7 +53,7 @@ class net:
     def __init__(self, inputs, output_size, layers, dropout, lr, opt, cosine_lossmargin, pos, neg):
         
         # Features
-        self.inputs = inputs  #self.embed = nn.Embedding.from_pretrained(inputs)
+        self.embed = nn.Embedding.from_pretrained(inputs)
         users, input_size = inputs.shape
 
         # Define the model
@@ -80,33 +81,33 @@ class net:
 
     def train(self, epochs, lossth):
         for i in range(epochs+1):
-            newemb = self.net(self.inputs)
+            newemb = self.net(self.embed.weight)
             loss = self.lossfunc(newemb, self.margin)
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-            if i%10 == 0:
+            if i%5 == 0:
                 print('Epoch %d | Loss: %.4f' % (i, loss.item()))
             self.loss_values.append(loss.item())
             if loss.item() < lossth: 
                 break
 
-        plt.plot(self.loss_values)
+        if epochs>1: plt.figure(1); plt.plot(self.loss_values)
         return newemb.detach()
     
     def eval(pos):
         pass
 
 
-
 # %%
 """
 Date: 22 May 2020
-Goal: 02 Complete network and training.
+Goal: 02 PinSAGE based GNN.
 Author: Harsha HN harshahn@kth.se
 """
+
 #%%---------------
 import torch
 import torch.nn as nn
@@ -115,42 +116,35 @@ import pinconv
 import matplotlib.pyplot as plt 
 import itertools
 import dgl
-from importlib import reload; reload(pinconv)
+import pipe
+from importlib import reload; reload(pinconv); reload(pipe)
 
-##%%------------------
 #Define a Graph Convolution Network
 class PCN(nn.Module):
-    def __init__(self, convdim, output_size, K):
+    def __init__(self, convdim, output_size):
         super(PCN, self).__init__()
-        [in_feats, hidden_size, out_feats] = convdim
-        # kernels
-        self.bnorm_in = nn.BatchNorm1d(in_feats)
-        self.bnorm_out= nn.BatchNorm1d(output_size)
 
-        # self.pinconvs=nn.ModuleList([pinconv.PinConv(*i) for i in convdim])
-        self.pinconvs = nn.ModuleList([
-            pinconv.PinConv(in_feats, hidden_size, out_feats) for k in range(K) ])
-        self.G = nn.Linear(out_feats, output_size)
+        # kernels
+        self.pinconvs = nn.ModuleList([pinconv.PinConv(*i) for i in convdim])
+        self.G = nn.Linear(convdim[-1][-1], output_size)
         self.g = nn.Parameter(torch.Tensor(1))
         
         nn.init.xavier_uniform_(self.G.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.constant_(self.G.bias, 0)
         nn.init.constant_(self.g, 1)
         
-    def forward(self, g, inputs):
-        h = self.bnorm_in(inputs)
+    def forward(self, g, h):
         for i, pconv in enumerate(self.pinconvs):
             h = pconv(g, h)
         h = self.g * F.relu(self.G(h))
-        h = self.bnorm_out(h)
         return h
 
 ##%%---------------------------
 class gnet(nn.Module):
 
-    def __init__(self, graph, nodeemb, convlayers, layers, output_size, dropout, lr, opt, select_loss, loss_margin, pos, neg, fdim=24):
-
+    def __init__(self, graph, nodeemb, convlayers, output_size, dropout, lr, opt, select_loss, loss_margin, pos, neg, fdim=48):
         super(gnet, self).__init__()
+        
         # Graph
         self.G = graph
 
@@ -167,12 +161,14 @@ class gnet(nn.Module):
         # Training samples
         self.pos = torch.tensor(list(zip(*pos))) #pos = tuple(zip(pos[0],pos[1]))
         self.neg = torch.tensor(list(zip(*neg)))
+        self.evalpos = pos
 
         # Define the model
-        self.net = PCN([fdim, *convlayers], output_size, layers) 
+        self.net = PCN([ [fdim, *convlayers[0]], *convlayers[1:] ], output_size) 
 
         # Define the optimizer
-        self.optimizer = getattr(torch.optim, opt)(itertools.chain(self.net.parameters(), self.embed.parameters()), lr)
+        # self.optimizer = getattr(torch.optim, opt)(itertools.chain(self.net.parameters(), self.embed.parameters()), lr)
+        self.optimizer = getattr(torch.optim, opt)(self.net.parameters(), lr)
 
         # Loss function
         self.margin = loss_margin
@@ -192,7 +188,7 @@ class gnet(nn.Module):
             p = torch.mul(newemb[self.pos[0]], newemb[self.pos[1]]).sum(1).mean()
             n = torch.mul(newemb[self.neg[0]], newemb[self.neg[1]]).sum(1).mean()
             return F.relu(n - p + margin)
-            
+    
     def train(self, epochs, lossth):
         for epoch in range(epochs+1):
             newemb = self.net(self.G, self.embed.weight)
@@ -202,14 +198,15 @@ class gnet(nn.Module):
             loss.backward()
             self.optimizer.step()
 
-            # if epoch%10 == 0:
-            print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
+            # with torch.no_grad():
+            if (epoch%5) == 0:
+                print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
             self.loss_values.append(loss.item())
             if loss.item() < lossth: 
                 break
-        
+
         # import matplotlib.pyplot as plt 
-        plt.plot(self.loss_values)
+        if epochs>1: plt.figure(1); plt.plot(self.loss_values)
         return newemb.detach()
     
     def eval(pos):

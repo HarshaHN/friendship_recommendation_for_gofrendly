@@ -66,12 +66,13 @@ class PinConv(nn.Module):
         rst = graph.dstdata['h']
         rst = th.cat([feat, rst], 1)
         rst = F.relu(self.W(rst))
-        
+
+        """        
         degs = graph.in_degrees().to(feat.device).float().clamp(min=1)
         norm = 1.0 / degs
         shp = norm.shape + (1,) * (feat.dim() - 1)
         norm = th.reshape(norm, shp)
-        rst = rst * norm
+        rst = rst * norm """
 
         denom = rst.norm(dim=1, keepdim=True)
         if any(denom) != 0:
@@ -84,8 +85,8 @@ class PinConv(nn.Module):
         which will come into effect when printing the model.
         """
         summary = 'in={_in_feats}, out={_out_feats}'
-        summary += ', normalization={_norm}'
-        if '_activation' in self.__dict__:
-            summary += ', activation={_activation}'
+        #summary += ', normalization={_norm}'
+        #if '_activation' in self.__dict__:
+        #    summary += ', activation={_activation}'
         return summary.format(**self.__dict__)
 

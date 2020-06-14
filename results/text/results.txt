@@ -1,50 +1,145 @@
 
-PinSAGE: K=500
-a. train: Hitrate = 11.8 MRR = 2.3
+Tasks:
+2. gcn: How many layers, how long random walks, how many random walks, self-loops to handle isolated points or not. loss_func: cosine, euclidean. 
+3. Spot big changes and dig further.
+
+validation dataset.
+scaleup 120,000 (Map reduce inference)
+Include googletrans and include SBERT embeddings
+
+--------------------------------------------------
+K = 500, users: 14948
+
+--------------------------------------------------
+Graph-based:
+a. train: 
+Hitrate = 23.1, MRR = 6.2 (cosine loss)
+Hitrate = 23.7, MRR = 6.4 (pinsage loss); max: Hitrate = 30.3 MRR = 6.4 (after epoch 1)
+without features: Hitrate = 7.8 MRR = 1.70
+
+b. val:  c. test:
+
+graph = rwG, nodeemb = X,
+convlayers = [[48,48]],
+output_size = 48,
+dropout = 0.1,
+lr = 1e-4,
+opt = 'RMSprop',
+select_loss = 'cosine',
+loss_margin = -0.5, #-1, -0.5
+pos = pos, #72382: (16063,56319)
+neg = neg, #402761: (2134,400627)
+
+1. output_size:
+a. 100: Hitrate = 26.6 MRR = 2.19 
+b. 200: Hitrate = 26.7 MRR = 2.30
+>c. 48: Hitrate = 26.6 MRR = 2.40 (19.90 MRR = 2.19) 25.8 MRR = 2.3
+d. 30: Hitrate =  24.2 MRR = 1.7
+e. 10: Hitrate = 2.2 MRR = 0.3
+
+
+a. convlayer:- 
+1. [48,48] = (24.4, 5.4) to (24.2, 5.6)
+2. [[48,48], [48,45,42]] = (31.3, 6.3) to (25.5, 5.3)
+3. [[48,48], [48,45,42], [42,39,36]] = (26.5, 6.9) to (26.4, 6.6)
+4. [[48,48], [48,45,42], [42,39,36], [36,36,36]] = (30.3, 8.3) to (26.1, 6.3)
+5. [[48,48], [48,45,45], [45,42,42], [42,39,39], [39,36,36]] = (34.5, 7.6) to (26.7, 6.6)
+6. [[48,48], [48,45,45], [45,42,42], [42,39,39], [39,36,36], [36,33,33], [33,30,30]] = (32.8, 8.2) to (25.7, 6.8)
+
+b. loss_margin:- cosine, [48,48]
+0. 0.5: 24.3 MRR = 5.4 to 16.3 MRR = 4.1
+>1. -0.5: 29.6 MRR = 5.89 to  19.6 MRR = 4.8
+2. -1:  23.9 MRR = 5.7 to 18.4 MRR = 5.3
+3. -2:  24.5 MRR = 5.6 to 8.9 MRR = 2.4
+loss_margin:- pinsage, [48,48]
+1. .25: 25.2 MRR = 5.5 to 23.6 MRR = 5.0
+2. .50: 26.1 MRR = 5.4 to 25.3 MRR = 5.5
+3. .75: 26.6 MRR = 5.6 to 25.1 MRR = 5.5
+4. 1: 
+
+select_loss, output_size, epochs, 
+
+--------------------------------------------------
+Node-based cosine encoder:
+
+a. train: 
+#72382, 402761: (16063,56319), (2134,400627)
+
+Hitrate = 7.1 MRR = 1.70 to Hitrate = 4.8 MRR = 1.0, rise and plateau Hitrate = 9.3 MRR = 1.6
+raise to 16.6 MRR = 2.3
+setup: margin = -0.5, Loss: 0.5526, outsize 10, no layers.
+
+1. output_size: _, [], -0.5, pos, neg, lr = 3e-3/(i+1) for 4*50 or 66
+a. 100: Hitrate = 26.6 MRR = 2.19 
+b. 200: Hitrate = 26.7 MRR = 2.30
+>c. 48: Hitrate = 26.6 MRR = 2.40
+d. 30: Hitrate =  24.2 MRR = 1.7
+e. 10: Hitrate = 2.2 MRR = 0.3
+
+2. layers: 48, _, -0.5, pos, neg, lr = 2e-3/(2*i+1) for 3*30
+>0. []: Hitrate = 26.7 MRR = 2.19
+a. [48]: Hitrate = 22.4 MRR = 1.6
+b. [96]: Hitrate = 25.4 MRR = 1.79
+c. [24]: Hitrate = 19.6 MRR = 1.7
+d. [48, 48]: 15.9 MRR = 1.4
+e. [96, 96]: 18.8 MRR = 1.2
+e. [96, 96, 96]: 18.9 MRR = 1.3
+
+3. dropouts
+4. cosine_lossmargin: 48, [], _, pos, neg, lr = 2e-3/(2*i+1) for 3*30
+a. -0.5: Hitrate = 26.7 MRR = 2.19
+b. -1  : Hitrate = 26.6 MRR = 2.0
+>c.  0  : Hitrate = 27.4 MRR = 2.5
+d. 0.5 : Hitrate = 24.7 MRR = 2.1
+e. 1.0 : Hitrate = 24.7 MRR = 2.1
+
+5. training samples:  48, [], 0, _, _, lr = 2e-3/(2*i+1) for 3*30
+a. trainpos, trainneg: decays
+b. pos, neg: 16063, 2134: Hitrate = 27.4 MRR = 2.5
+c. pos[:2134], neg: Hitrate = 28.3 MRR = 1.5
+d. pos, trainneg[:16063]: Hitrate = 22.7 MRR = 2.1
+e. pos, neg[:1000]:  
+f. trainpos, neg: peaks at 15.6 and goes down.
+g. trainpos, trainneg[:72382]: Hitrate = , MRR = 
+
+pos, neg: loss = 0.1064 with Hitrate = 24.0 MRR = 2.6, Hitrate = 23.8 MRR = 0.5.
+trainpos, trainneg = went down with perf
+
+6. batch norm:
+a. with Hitrate = 26.3 MRR = 2.4, Hitrate = 26.6 MRR = 1.1.
+b. w/o Hitrate = 24.2 MRR = 2.3, Hitrate = 22.0 MRR = 0.9.
+
+less samples good performance, large leading to confusion.
+pos >= neg gives better results.
+trainmf, trainbf.
+valmf: equal or higher(job over), low(overfitting, not many samples)
+valpos: poor(afs not trained), good(afs similar to mfs)
+
+b. val: c. test:
+traindata: Hitrate = 26.3 MRR = 2.4
+valdata:   Hitrate = 26.6 MRR = 1.1
+
+--------------------------------------------------
+Raw input features:
+a. train: 
+Hitrate = 23.3 MRR = 3.8; 
+Rawvecs, perhaps performing bad for negative samples. During learning, it is optimizing for negative, thus the performance drops.
+
 b. val:  c. test:
 
 --------------------------------------------------
-Cosine encoder: K=500
-one: 14948
-a. train: 
-1. raw X: Hitrate = 23.3 MRR = 3.8; 
-with encoder: Hitrate = 4.6 MRR = 1.2;
-random init: 4.8, 1.1; (with encoder max 5.4, 1.5)
-setup: margin = -0.5, Loss: 0.5526, outsize 10, no layers.
-
-b. val: c. test:
-
---------------------------------------------------
-
-Random recs: K = 500
-users: 14948
+Random recs: 
 a. train: Hitrate = 3.2 MRR = 0.8
-b. val: 
-c. test:
 
---------------------------------------------------
+b. val:  c. test:
 
+-------------------------------------------------------------
+Training tips:
+a. loss = nan, increase vector size.
+b. all emb = 0, change margin and remove normalization layer.
+c. 
+-------------------------------------------------------------
 
---------------------------------------------------
-mod.config( fdim = 20, fsize = 3,
-            layers = 2,
-            opt = 'Adam',
-            lr = 1e-3,
-            margin = -1.0, # -1 for opp and 0 for 90.
-            embflag=False, nodefeat=None )
-            
-teval = [0.018, 0.078] veval = [0.001, 0.079]
---------------------------------------------------
-fdim = 20, fsize = 3,
-            layers = 5,
-            opt = 'Adam',
-            lr = 1e-3,
-            margin = 5.0,
-mrr, hitrate
-train: [0.006, 0.091] val: [0.002, 0.089]
-
-
------------------------------------------------------------------------------------------
 EDA
 
 main['city'].value_counts()

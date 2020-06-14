@@ -8,9 +8,7 @@ Data pipeline, input: features, output: [hitrate, mrr]
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance
-
 from sklearn.neighbors import NearestNeighbors
-import pandas as pd
 import networkx as nx
 import random
 
@@ -26,7 +24,7 @@ class pipeflow:
             }
         self.neigh = NN[nntype]
         self.neigh.fit(emb)
-        print('-> Nearest neighbor model initialised.')
+        # print('-> Nearest neighbor model initialised.')
 
 
     def dfmanip(self, pos):
@@ -50,12 +48,12 @@ class pipeflow:
         df['mrr'] = df['id'].apply(lambda x: self.mrr(df.loc[x, 'actual'], df.loc[x, 'recs']) if df.loc[x, 'hitrate']>0 else 0)
 
         size = actualG.number_of_nodes()
-        self.mrr_avg = round(df['mrr'].sum()/size, 3)
-        self.hitrate_avg= round(df['hitrate'].sum()/size, 3)
+        self.mrr_avg = round(df['mrr'].sum()/size, 3)*100
+        self.hitrate_avg= round(df['hitrate'].sum()/size, 3)*100
         
         # df.set_index('user_id', inplace = True)
-        print('Hitrate =', self.hitrate_avg*100, 'MRR =', self.mrr_avg*100)
-        return [df, [self.hitrate_avg, self.mrr_avg]]
+        print('Hitrate =', self.hitrate_avg, 'MRR =', self.mrr_avg)
+        return [self.hitrate_avg, self.mrr_avg]
 
     def krecs(self, user):
         res = list(self.neigh.kneighbors([self.emb[user]], self.K, return_distance=False)[0][1:])
@@ -65,8 +63,8 @@ class pipeflow:
     @staticmethod
     def mrr(actual, recs):
         match = list(set(actual).intersection(set(recs)))
-        rank = [recs.index(i) for i in match]
-        return 1/(min(rank)+1)
+        rank = [1+recs.index(i) for i in match]
+        return 1/min(rank)
 
     @staticmethod
     def hitrate(actual, recs):
