@@ -16,22 +16,6 @@ feat = pd.read_hdf("../data/one/trainfeat.h5", key='04') # ['emb', 'cat', 'num']
 #[trainpos, trainneg] = dproc.dproc.loadlinks() #72382, 402761: (16063,56319), (2134,400627)
 [trainpos, trainneg, valmfs] = dproc.dproc.getlinks(feat.index)
 
-
-#%%------------------------------
-import pickle
-with open('colab.pkl', 'rb') as f: [G, X, trainpos, trainneg] = pickle.load(f)
-with open('mfbf.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
-with open('valmfs.pkl', 'rb') as f: valmfs = pickle.load(f)
-
-#%%---------------------
-from viz import embplot
-import matplotlib.pyplot as plt
-import seaborn as sns
-  
-#x = embplot([X[:,3:]]); plt.figure(3); sns.kdeplot(x)
-#x = embplot([X[:,:3]]); plt.figure(3); sns.kdeplot(x)
-x = embplot([X]); plt.figure(3); sns.kdeplot(x)
-
 #%%-----------------------------------
 """ 02. Transform to model inputs """
 import torch
@@ -49,8 +33,44 @@ id_idx = {id: n for n,id in enumerate(feat.index)} # dict(enumerate(feat.index))
 valmfs = [(id_idx[a], id_idx[b]) for a,b in valmfs]
 # valpos = [(id_idx[a], id_idx[b]) for a,b in valpos]
 
-
 del id_idx, numerical_data, categorical_data, ids, feat
+
+
+#%%------------------------------
+import pickle
+with open('colab.pkl', 'rb') as f: [G, X, trainpos, trainneg] = pickle.load(f)
+with open('mfbf.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
+with open('valmfs.pkl', 'rb') as f: valmfs = pickle.load(f)
+
+
+#%%----------------------------
+""" 01. Embedding similarity distribution """
+
+def embplot(embs):
+  # input: embs, output: a plot
+  from sklearn.metrics.pairwise import cosine_similarity
+  import numpy as np
+  import random
+
+  for emb in embs:
+    emb = emb.numpy()
+    ind = random.sample(range(len(emb)), 2000)
+    iemb = emb[ind]
+    s=[]; limit = len(iemb)-1
+    for i,a in enumerate(iemb):
+        if i == limit: break
+        val = cosine_similarity([a], iemb[i+1:])[0]
+        s.extend(val)
+  return s
+
+#%%---------------------
+from viz import embplot
+import matplotlib.pyplot as plt
+import seaborn as sns
+  
+#x = embplot([X[:,3:]]); plt.figure(3); sns.kdeplot(x)
+#x = embplot([X[:,:3]]); plt.figure(3); sns.kdeplot(x)
+#x = embplot([X]); plt.figure(3); sns.kdeplot(x)
 
 #%%-----------------------------------
 """ 03. Encoder Model """
@@ -60,67 +80,53 @@ import torch
 import matplotlib.pyplot as plt 
 import importlib; importlib.reload(nn); importlib.reload(pipe)
 import seaborn as sns
+import time
 
+testneg = neg 
 testpos = pos
-testneg = neg
-# embed = nn.Embedding(*X.shape).weight.detach()
-onemodel = nn.net(  inputs = X,
+# embed = nn.Embedding(*X.shape)
+onemodel = nn.net(  inputs = X, #embed.weight
                     output_size = 48, #6, 10
                     layers = [], #48,24,12  #48,36,30 
                     dropout = 0.1,
                     lr = 1e-3, #1e-2, 2e-3
                     opt = 'RMSprop', # Rprop, RMSprop, Adamax, AdamW, Adagrad, Adadelta, SGD, Adam
-                    cosine_lossmargin = 0, #-1, -0.5
+                    cosine_lossmargin = 0.25, #-1, -0.5
                     pos = testpos, #72382: (16063,56319)
                     neg = testneg) #402761: (2134,400627)
 
-run = 1; train=[]; val=[]
+run = 1; train=[]; val=[]; exp=[]
 if run==0:
-  emb = onemodel.train(epochs = 1, lossth=0.05)
+  t0 = time.time()
+  emb = onemodel.train(epochs=1, lossth=0.01)
   onepipe = pipe.pipeflow(emb, K=500, nntype='cosine')
   train.append(onepipe.dfmanip(testpos)[0])
   val.append(onepipe.dfmanip(valmfs)[0])
 
-  #e = embplot([emb]); plt.figure(4); sns.kdeplot(e)
+  e = embplot([emb]); plt.figure(4); sns.kdeplot(e)
+  print('Time taken:', time.time()-t0)
+
 
 #%%--------------------
 """ 03. a. Training """
-
-#%%--------------------
-""" 03. a. Training """
-for i in range(1):
+for i in range(4):
+  t1 = time.time()
   onemodel.optimizer = getattr(torch.optim, 'RMSprop')(onemodel.net.parameters(), 2e-3/(2*i+1))
   emb = onemodel.train(epochs = 50, lossth=0.01)
   onepipe = pipe.pipeflow(emb, K=500, nntype='cosine')
   train.append(onepipe.dfmanip(testpos)[0])
+  #exp.append(onepipe.dfmanip(trainpos)[0])
   val.append(onepipe.dfmanip(valmfs)[0])
   e = embplot([emb]); plt.figure(4); sns.kdeplot(e)
+  print('Time taken by train round', i, '=', time.time()-t1)
 
-plt.figure(2); plt.plot(train)
-plt.figure(3); plt.plot(val)
-print(emb.mean(0))
-print(emb.std(0))
+fig2 = plt.figure(2); plt.plot(train); plt.plot(val); plt.legend()
+fig2.suptitle('Hitrate Vs. Epoch*50')
+plt.xlabel('Epoch'); plt.ylabel('Hitrate');
+#plt.figure(3); plt.plot(exp)
+print(emb.mean(0)); print(emb.std(0))
+# with open('one.pkl', 'wb') as f: pickle.dump([emb], f)
 
-
-
-
-
-
-
-
-
-
-
-
-#%%---------------------
-""" 04. Recommendations and evaluation """
-from pipe import pipeflow
-
-onepipe = pipeflow(X, K=500, nntype='cosine')
-# df, hr, mrr
-_ = onepipe.dfmanip(trainpos)
-
-# import pickle; with open('../data/one/oneemb.pkl', 'wb') as f: pickle.dump([emb], f)
 
 #%%=================================================
 """
@@ -131,101 +137,144 @@ Graph Neural Network, output: [hitrate, mrr]
 
 #%%---------------------
 """ 01. Load the graph """
-import dgl
-import dproc
-
-G = dproc.dproc.makedgl(num=len(X), pos=trainpos)
-# G.readonly(True)
-
-#%%----------------------------
-# Need G, X, trainpos, trainneg
 import pickle
-with open('colab.pkl', 'wb') as f: pickle.dump([G, X, trainpos, trainneg], f)
+with open('colab.pkl', 'rb') as f: [G, X, pos1, neg1] = pickle.load(f)
 #with open('colab.pkl', 'rb') as f: [G, X, trainpos, trainneg] = pickle.load(f)
-with open('mfbf.pkl', 'wb') as f: pickle.dump([pos, neg], f)
+with open('mfbf.pkl', 'rb') as f: [pos2, neg2] = pickle.load(f)
 #with open('mfbf.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
-with open('valmfs.pkl', 'wb') as f: pickle.dump(valmfs, f)
+with open('valmfs.pkl', 'rb') as f: valmfs = pickle.load(f)
 #with open('valmfs.pkl', 'rb') as f: valmfs = pickle.load(f)
+with open('one.pkl', 'rb') as f: [emb] = pickle.load(f)
+
+#%%----------------------------------------------
+""" 01. Embedding similarity distribution """
+
+def embplot(embs):
+  # input: embs, output: a plot
+  from sklearn.metrics.pairwise import cosine_similarity
+  import numpy as np
+  import random
+
+  for emb in embs:
+    emb = emb.numpy()
+    ind = random.sample(range(len(emb)), 2000)
+    iemb = emb[ind]
+    s=[]; limit = len(iemb)-1
+    for i,a in enumerate(iemb):
+        if i == limit: break
+        val = cosine_similarity([a], iemb[i+1:])[0]
+        s.extend(val)
+  return s
+
+#%---------------------------------------
+import dgl
+def makedgl(num, pos):
+    G = dgl.DGLGraph()
+    G.add_nodes(num)
+    G.add_edges(G.nodes(), G.nodes()) #self loop all
+    G.add_edges(*zip(*pos)) #add edges list(zip(*pos))
+    G = dgl.to_bidirected(G) 
+    G = dgl.graph(G.edges(), 'user', 'frd')
+    print('-> Graph G has %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
+    return G
+
+G = makedgl(num=len(X), pos=pos2)
 
 #%%-------------------------------------------------
 # Random walk
+import dgl
+import torch
 rw = dgl.sampling.RandomWalkNeighborSampler(G=G, 
-                                            random_walk_length=32, 
+                                            random_walk_length=64, 
                                             random_walk_restart_prob=0,
-                                            num_random_walks=10,
-                                            num_neighbors=10,
+                                            num_random_walks=8,
+                                            num_neighbors=16,
                                             weight_column='w')
+
 rwG = rw(torch.LongTensor(G.nodes()))
 rwG.edata['w'] = rwG.edata['w'].float()
 
 del rw, rwG.edata['_ID'], G 
+print('-> Graph G has %d nodes' % rwG.number_of_nodes(), 'with %d edges' % (rwG.number_of_edges())) 
 # ng.predecessors(1) # ng.edata['w'][ng.edge_ids(*ng.in_edges(1))]
 
 #%%----------------------
 """ 01. Graph Neural Network """
 # rwG.is_readonly
 import nn
-from importlib import reload; reload(nn)
+import pipe
+import torch
+import matplotlib.pyplot as plt 
+import importlib; importlib.reload(nn); importlib.reload(pipe)
+import seaborn as sns
+import time
 
 # fdim = X.shape[1]
+neg = neg2 #402761: (2134,400627)
+pos = pos2 #72382: (16063,56319)
 twomodel = nn.gnet( graph = rwG,
-                    nodeemb = X,
-                    convlayers = [[48, 48], [48, 45, 42], [42, 39, 36]],
-                    output_size = 36,
-                    dropout = 0.1,
-                    lr = 1e-4,
+                    nodeemb = X, #X[:,:3],
+                    convlayers = [[48,48]],#, [48,45,45], [45,42,42], [42,39,39], [39,36,36]],
+                    output_size = 48,
+                     dropout = 0.03,
+                    lr = 5e-4,
                     opt = 'RMSprop', # Rprop, RMSprop, Adamax, AdamW, Adagrad, Adadelta, SGD, Adam
-                    select_loss = 'pinsage',
-                    loss_margin = 1, # -0.5
-                    pos = trainpos, #72382
-                    neg = trainneg,  #402761
+                    select_loss = 'cosine', #'pinsage'
+                    loss_margin = 0.25, # 0.25
+                    pos = pos, #16063
+                    neg = neg, #2134
                     fdim = 48)
-#print(twomodel)
+
+run = 0; trainE=[]; valE=[]; expE=[]
+if run==0:
+  t0 = time.time()
+  # twopipe = pipe.pipeflow(emb, K=500, nntype='cosine')
+  # trainE.append(twopipe.dfmanip(pos)[0])
+  # valE.append(twopipe.dfmanip(valmfs)[0])
+  # Raw X: # Hitrate = 28.2 MRR = 2.9; Hitrate = 26.4 MRR = 1.3
+  # Hitrate = 26.3 MRR = 2.4; Hitrate = 27.3 MRR = 0.8
+
+  newemb = twomodel.train(epochs=1, lossth=0.01)
+  print('Grad / Weights =', (list(twomodel.net.parameters())[1].grad / list(twomodel.net.parameters())[1]).mean())
+  twopipe = pipe.pipeflow(newemb, K=500, nntype='cosine')
+  #trainE.append(twopipe.dfmanip(pos)[0])
+  valE.append(twopipe.dfmanip(valmfs)[0])
+
+  e = embplot([newemb]); plt.figure(4); sns.kdeplot(e)
+  print('Time taken:', time.time()-t0)
+
+# Raw X: # Hitrate = 28.2 MRR = 2.9; Hitrate = 26.4 MRR = 1.3
+# Hitrate = 29.2 MRR = 3.4; Hitrate = 21.9 MRR = 1.3
 
 #%%--------------------
 """ 03. a. Training """
-twomodel.optimizer  = getattr(torch.optim, 'RMSprop')(twomodel.net.parameters(), 5e-5)
-newemb = twomodel.train(epochs=50, lossth=0.05)
-# list(twomodel.net.parameters())[-1] 
-print(newemb[0])
+for i in range(5):
+  t1 = time.time()
+  twomodel.optimizer  = getattr(torch.optim, 'RMSprop')(twomodel.net.parameters(), 5e-4) #5e-4
+  newemb = twomodel.train(epochs=30, lossth=0.01)
+  print('Grad / Weights =', (list(twomodel.net.parameters())[1].grad / list(twomodel.net.parameters())[1]).mean())
+  twopipe = pipe.pipeflow(newemb, K=500, nntype='cosine')
+  #trainE.append(twopipe.dfmanip(pos)[0])
+  valE.append(twopipe.dfmanip(valmfs)[0])
+  #expE.append(twopipe.dfmanip(trainpos)[0])
+
+  e = embplot([newemb]); plt.figure(4); sns.kdeplot(e)
+  print('Time taken by train round', i, '=', time.time()-t1)
+
+fig2 = plt.figure(2); plt.plot(trainE); plt.plot(valE); plt.legend()
+fig2.suptitle('Hitrate Vs. Epoch');
+plt.xlabel('Epoch'); plt.ylabel('Hitrate');
+#fig.savefig('test.jpg')
+  
+#plt.figure(3); plt.plot(valE)
+#plt.figure(5); plt.plot(expE)
+print(newemb.mean(0)); print(newemb.std(0))
+
 
 #%%---------------------
-""" 04. Recommendations and evaluation """
+with open('two.pkl', 'wb') as f: pickle.dump(newemb, f)
 
-import pipe
-twopipe = pipe.pipeflow(nodeemb, K=500, nntype='cosine')
 
-# df, hr, mrr
-_ = twopipe.dfmanip(trainpos)
-
-#%%---------------------------
-""" 05. Embedding similarity distribution """
-# input: embs, output: a plot
-from sklearn.metrics.pairwise import cosine_similarity
-from scipy import sparse
-import numpy as np
-import seaborn as sns
-import torch
-
-def embplot(emb):
-    #for emb in embs:
-    s=[]; limit = len(emb)-1
-    for i,a in enumerate(emb):
-        if i == limit: break
-        val = cosine_similarity([a], emb[i+1:])[0]
-        s.extend(val)
-        sns.kdeplot(s)
-
-A = torch.tensor([[0, 1, 0, 0, 1], [0, 0, 1, 1, 1],[1, 1, 0, 1, 0]])
-embplot(A.numpy())
-
-#%%---------------------------
-# Save variables
-"""
-import pickle
-with open('../data/one/oneoutemb.pkl', 'wb') as f:
-    pickle.dump([emb], f)
-"""
 #%%-----------
 import sys
 sys.modules[__name__].__dict__.clear()

@@ -15,8 +15,8 @@ import torch.nn.functional as F
 
 """ 01. PinsageConv """
 class PinConv(nn.Module):
-   
-    def __init__(self, in_feats, hidden_feats, out_feats):
+
+    def __init__(self, in_feats, hidden_feats, out_feats, dropout=0):
         super(PinConv, self).__init__()
         # feature size
         self._in_feats = in_feats
@@ -32,25 +32,19 @@ class PinConv(nn.Module):
         nn.init.constant_(self.Q.bias, 0)
         nn.init.constant_(self.W.bias, 0)
 
+        # Norm
+        self.bnorm_one = nn.BatchNorm1d(hidden_feats)
+        self.bnorm_two = nn.BatchNorm1d(out_feats)
+
+        # Dropouts
+        self.dropout_one = nn.Dropout(dropout)
+        self.dropout_two = nn.Dropout(dropout)
+
     def forward(self, graph, feat):
-        """Compute graph convolution.
-
-        Parameters
-        ----------
-        graph : DGLGraph
-            The graph.
-        feat : torch.Tensor
-            The input feature (Node embeddings)
-
-        Returns
-        -------
-        torch.Tensor
-            The output feature (Node embeddings)
-        """
         graph = graph.local_var()
 
-        graph.srcdata['h'] = F.relu(self.Q(feat))
-        
+        graph.srcdata['h'] = self.dropout_one(self.bnorm_two(F.relu(self.Q(feat))))
+
         def mfunc(edges):
             return {'m':edges.src['h'], 'a':edges.data['w']}
 
@@ -65,14 +59,8 @@ class PinConv(nn.Module):
 
         rst = graph.dstdata['h']
         rst = th.cat([feat, rst], 1)
-        rst = F.relu(self.W(rst))
-
-        """        
-        degs = graph.in_degrees().to(feat.device).float().clamp(min=1)
-        norm = 1.0 / degs
-        shp = norm.shape + (1,) * (feat.dim() - 1)
-        norm = th.reshape(norm, shp)
-        rst = rst * norm """
+        
+        rst = self.dropout_two(self.bnorm_two(F.relu(self.W(rst))))
 
         denom = rst.norm(dim=1, keepdim=True)
         if any(denom) != 0:

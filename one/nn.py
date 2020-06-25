@@ -3,7 +3,6 @@ Date: 2 June 2020
 Goal: 01 Neural network and training.
 Author: Harsha HN harshahn@kth.se
 """
-
 #%%---------------
 import torch
 import torch.nn as nn
@@ -80,7 +79,7 @@ class net:
         return F.cosine_embedding_loss(newemb[self.input1], newemb[self.input2], self.target, margin)
 
     def train(self, epochs, lossth):
-        for i in range(epochs+1):
+        for i in range(1,epochs+1):
             newemb = self.net(self.embed.weight)
             loss = self.lossfunc(newemb, self.margin)
 
@@ -116,16 +115,15 @@ import pinconv
 import matplotlib.pyplot as plt 
 import itertools
 import dgl
-import pipe
-from importlib import reload; reload(pinconv); reload(pipe)
+from importlib import reload; reload(pinconv)
 
 #Define a Graph Convolution Network
 class PCN(nn.Module):
-    def __init__(self, convdim, output_size):
+    def __init__(self, convdim, output_size, dropout=0):
         super(PCN, self).__init__()
 
         # kernels
-        self.pinconvs = nn.ModuleList([pinconv.PinConv(*i) for i in convdim])
+        self.pinconvs = nn.ModuleList([pinconv.PinConv(*i, dropout) for i in convdim])
         self.G = nn.Linear(convdim[-1][-1], output_size)
         self.g = nn.Parameter(torch.Tensor(1))
         
@@ -133,10 +131,23 @@ class PCN(nn.Module):
         nn.init.constant_(self.G.bias, 0)
         nn.init.constant_(self.g, 1)
         
+        # norms
+        #self.bnorm_in = nn.BatchNorm1d(convdim[0][0])
+        self.bnorm_out = nn.BatchNorm1d(output_size)
+        self.bnorm = nn.BatchNorm1d(output_size)
+        
+        # dropouts
+        self.dropout_out = nn.Dropout(dropout)
+
     def forward(self, g, h):
+        #h = self.bnorm_in(h)
+        
         for i, pconv in enumerate(self.pinconvs):
             h = pconv(g, h)
-        h = self.g * F.relu(self.G(h))
+
+        h = self.g * self.dropout_out(self.bnorm_out(F.relu(self.G(h))))
+        h = self.bnorm(h)
+ 
         return h
 
 ##%%---------------------------
@@ -164,11 +175,13 @@ class gnet(nn.Module):
         self.evalpos = pos
 
         # Define the model
-        self.net = PCN([ [fdim, *convlayers[0]], *convlayers[1:] ], output_size) 
+        self.dropout = dropout
+        self.net = PCN([ [fdim, *convlayers[0]], *convlayers[1:] ], output_size, self.dropout) 
 
         # Define the optimizer
+        self.lr = lr
+        self.optimizer = getattr(torch.optim, opt)(self.net.parameters(), self.lr)
         # self.optimizer = getattr(torch.optim, opt)(itertools.chain(self.net.parameters(), self.embed.parameters()), lr)
-        self.optimizer = getattr(torch.optim, opt)(self.net.parameters(), lr)
 
         # Loss function
         self.margin = loss_margin
@@ -185,12 +198,13 @@ class gnet(nn.Module):
         if self.select_loss == 'cosine':
             return F.cosine_embedding_loss(newemb[self.input1], newemb[self.input2], self.target, margin)
         elif self.select_loss == 'pinsage':
-            p = torch.mul(newemb[self.pos[0]], newemb[self.pos[1]]).sum(1).mean()
-            n = torch.mul(newemb[self.neg[0]], newemb[self.neg[1]]).sum(1).mean()
+            p = torch.mul(newemb[self.pos[0]], newemb[self.pos[1]]).mean(1).mean()
+            n = torch.mul(newemb[self.neg[0]], newemb[self.neg[1]]).mean(1).mean()
+            #print('p,n =',p,n)
             return F.relu(n - p + margin)
     
     def train(self, epochs, lossth):
-        for epoch in range(epochs+1):
+        for epoch in range(1,epochs+1):
             newemb = self.net(self.G, self.embed.weight)
             loss = self.lossfunc(newemb, self.margin)
 
@@ -198,7 +212,6 @@ class gnet(nn.Module):
             loss.backward()
             self.optimizer.step()
 
-            # with torch.no_grad():
             if (epoch%5) == 0:
                 print('Epoch %d | Loss: %.4f' % (epoch, loss.item()))
             self.loss_values.append(loss.item())
@@ -212,5 +225,3 @@ class gnet(nn.Module):
     def eval(pos):
         pass
 
-
-# %%

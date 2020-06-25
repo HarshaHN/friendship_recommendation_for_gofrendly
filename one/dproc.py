@@ -154,7 +154,7 @@ class dproc:
         # df['story'] = pd.read_hdf("../data/one/stories.h5", key='01')
         
         """ 03. Stories to S-BERT emb """
-        df['emb'] = df['story'].apply(lambda x: np.random.randn(1204) if x!=-1 else -1)
+        df['emb'] = df['story'].apply(lambda x: np.random.randn(1024) if x!=-1 else -1)
         # df['emb'] = pd.read_hdf("../data/one/emb.h5", key='01')
         #df.drop(columns=['story'])
 
@@ -168,10 +168,6 @@ class dproc:
         # feat = pd.read_hdf("../data/one/trainfeat.h5", key='02')
         
         # 01. Numerical data        
-        #from sklearn.preprocessing import robust_scale
-        #feat.age = robust_scale(feat.age.to_numpy()[:, None])
-        #feat.lat = robust_scale(feat.lat.to_numpy()[:, None])
-        #feat.lng = robust_scale(feat.lng.to_numpy()[:, None])
 
         feat['num'] = feat.index
         feat['num'] = feat['num'].apply(lambda x: [feat.age[x], feat.lat[x], feat.lng[x]])
