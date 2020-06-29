@@ -1,34 +1,58 @@
 
-Tasks:
-2. gcn: How many layers, how long random walks, how many random walks, self-loops to handle isolated points or not. loss_func: cosine, euclidean. 
-3. Spot big changes and dig further.
-
-validation dataset.
 scaleup 120,000 (Map reduce inference)
 Include googletrans and include SBERT embeddings
+a. node-based Cosine encoder
+
+b.
 
 --------------------------------------------------
 K = 500, users: 14948
+friend's neg conn wud become my neg conn
+IncrementalPCA, with whitening.
 
 --------------------------------------------------
 Graph-based:
 a. train: 
-Hitrate = 23.1, MRR = 6.2 (cosine loss)
-Hitrate = 23.7, MRR = 6.4 (pinsage loss); max: Hitrate = 30.3 MRR = 6.4 (after epoch 1)
-without features: Hitrate = 7.8 MRR = 1.70
+cosine'0': Hitrate = 26.3 MRR = 0.89
+cosine'0.25': Hitrate = 24.8 MRR = 1.7 (user norm)
+Hitrate = 26.3 MRR = 1.2 (bnorm at end but one)
+Hitrate = 30.0 MRR = 0.89 (bnorm at end)
+Hitrate = 32.7 MRR = 1.4 (bnorm at out of every relu)
+30.7 (without user norm)
+Hitrate = 40.5 MRR = 4.5; Hitrate = 31.4 MRR = 1.0
+with dropout:0.03, 0.05, 0.1
+pinsage: 0.5, 1, 2, 3, 5, didn't perormance well.
+trainpos: Hitrate = 28.7 MRR = 1.4
+layers: with dropout did not improve
+emb: less
+
+without features:
 
 b. val:  c. test:
 
 graph = rwG, nodeemb = X,
-convlayers = [[48,48]],
+convlayers = 5 layers,
 output_size = 48,
 dropout = 0.1,
-lr = 1e-4,
+lr = 1e-5,
 opt = 'RMSprop',
 select_loss = 'cosine',
-loss_margin = -0.5, #-1, -0.5
+loss_margin = 0, #-1, -0.5
 pos = pos, #72382: (16063,56319)
 neg = neg, #402761: (2134,400627)
+
+Epoch 001: Hitrate = 32.7 MRR = 5.1; Hitrate = 19.1 MRR = 0.5
+Epoch 120: Hitrate = 39.3 MRR = 6.0; Hitrate = 22.8 MRR = 0.8
+[5 layers]: Hitrate = 43.0 MRR = 6.0; Hitrate = 24.7 MRR = 0.9
+
+with batch_norm
+a. bn on nn and pinconv, -0.5: decays
+b. bn on nn, 0: 
+Epoch 001: Hitrate = 14.2 MRR = 2.1; Hitrate = 6.3 MRR = 0.4
+Epoch 120: Hitrate = 17.9 MRR = 3.1; Hitrate = 7.5 MRR = 0.2
+with dropouts
+Epoch 001:
+Epoch 120:
 
 1. output_size:
 a. 100: Hitrate = 26.6 MRR = 2.19 
@@ -37,14 +61,50 @@ b. 200: Hitrate = 26.7 MRR = 2.30
 d. 30: Hitrate =  24.2 MRR = 1.7
 e. 10: Hitrate = 2.2 MRR = 0.3
 
-
 a. convlayer:- 
-1. [48,48] = (24.4, 5.4) to (24.2, 5.6)
-2. [[48,48], [48,45,42]] = (31.3, 6.3) to (25.5, 5.3)
-3. [[48,48], [48,45,42], [42,39,36]] = (26.5, 6.9) to (26.4, 6.6)
-4. [[48,48], [48,45,42], [42,39,36], [36,36,36]] = (30.3, 8.3) to (26.1, 6.3)
-5. [[48,48], [48,45,45], [45,42,42], [42,39,39], [39,36,36]] = (34.5, 7.6) to (26.7, 6.6)
-6. [[48,48], [48,45,45], [45,42,42], [42,39,39], [39,36,36], [36,33,33], [33,30,30]] = (32.8, 8.2) to (25.7, 6.8)
+1. [48,48] = 
+2. [[48,48], [48,45,42]] = 
+3. [[48,48], [48,45,42], [42,39,36]] =
+4. [[48,48], [48,45,42], [42,39,36], [36,36,36]] = 
+5. [[48,48], [48,45,45], [45,42,42], [42,39,39], [39,36,36]] = Hitrate = 53.7 MRR = 9.1;
+6. [[48,48], [48,45,45], [45,42,42], [42,39,39], [39,36,36], [36,33,33], [33,30,30]] = 
+
+
+b. loss_margin:- rwG(pos2), convlayers(5), 48, 0, 1e-4, _, pos2, neg2.
+a. pinsage
+a.0
+b.1: Hitrate = 38.0 MRR = 4.39; Hitrate = 21.1 MRR = 0.8
+c.2: 
+d.3
+
+b. cosine
+-0.5: Hitrate = 34.9 MRR = 5.5; Hitrate = 16.7 MRR = 0.89;
+>0.25: Hitrate = 39.0 MRR = 5.4; Hitrate = 19.6 MRR = 0.8 (Max: Hitrate = 42.8 MRR = 5.0; Hitrate = 22.0 MRR = 0.7;)
+0:  Hitrate = 34.4 MRR = 5.1; Hitrate = 19.4 MRR = 1.0
+0.5: Hitrate = 36.5 MRR = 4.9; Hitrate = 21.3 MRR = 0.5
+-0.25: Hitrate = 37.1 MRR = 6.0; Hitrate = 17.1 MRR = 0.5
+
+loss_margin:- pinsage, [48,48]
+1. .25: 25.2 MRR = 5.5 to 23.6 MRR = 5.0
+2. .50: 26.1 MRR = 5.4 to 25.3 MRR = 5.5
+3. .75: 26.6 MRR = 5.6 to 25.1 MRR = 5.5
+4. 1: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 b. loss_margin:- cosine, [48,48]
 0. 0.5: 24.3 MRR = 5.4 to 16.3 MRR = 4.1
@@ -89,17 +149,21 @@ e. [96, 96, 96]: 18.9 MRR = 1.3
 4. cosine_lossmargin: 48, [], _, pos, neg, lr = 2e-3/(2*i+1) for 3*30
 a. -0.5: Hitrate = 26.7 MRR = 2.19
 b. -1  : Hitrate = 26.6 MRR = 2.0
->c.  0  : Hitrate = 27.4 MRR = 2.5
+>c. 0  : Hitrate = 27.4 MRR = 2.5; (Hitrate = 25.9 MRR = 2.7; Hitrate = 27.1 MRR = 1.0)
+c. .25 : Hitrate = 26.3 MRR = 2.2; Hitrate = 27.2 MRR = 0.6
 d. 0.5 : Hitrate = 24.7 MRR = 2.1
 e. 1.0 : Hitrate = 24.7 MRR = 2.1
 
 5. training samples:  48, [], 0, _, _, lr = 2e-3/(2*i+1) for 3*30
-a. trainpos, trainneg: decays
-b. pos, neg: 16063, 2134: Hitrate = 27.4 MRR = 2.5
-c. pos[:2134], neg: Hitrate = 28.3 MRR = 1.5
-d. pos, trainneg[:16063]: Hitrate = 22.7 MRR = 2.1
-e. pos, neg[:1000]:  
-f. trainpos, neg: peaks at 15.6 and goes down.
+Hi again, 
+a. pos1, neg1: decays [possibly due to push-pull phenomenon]
+b. pos2, neg2(16063, 2134): grows and peaks at Hitrate = 27.4 MRR = 2.5 [possibly less push-pull]
+c. pos[:2134], neg: Hitrate = 28.3 MRR = 1.5 [possibly less positive connection and leading to over-fitting] 
+pos, trainpos, valmfs
+
+d. pos, trainneg[:16063]: Hitrate = 22.7 MRR = 2.1 [more negatives]
+e. pos, neg[:1000]:  same as 'c'
+f. trainpos, neg: peaks at 15.6 and goes down. 'more pulling'
 g. trainpos, trainneg[:72382]: Hitrate = , MRR = 
 
 pos, neg: loss = 0.1064 with Hitrate = 24.0 MRR = 2.6, Hitrate = 23.8 MRR = 0.5.
@@ -109,8 +173,18 @@ trainpos, trainneg = went down with perf
 a. with Hitrate = 26.3 MRR = 2.4, Hitrate = 26.6 MRR = 1.1.
 b. w/o Hitrate = 24.2 MRR = 2.3, Hitrate = 22.0 MRR = 0.9.
 
-less samples good performance, large leading to confusion.
-pos >= neg gives better results.
+7. K
+500: Hitrate = 23.3 MRR = 3.8 to Hitrate = 25.3 MRR = 2.1
+100: Hitrate = 4.3 MRR = 1.4 to Hitrate = 7.6 MRR = 2.3 | time = 83s*4
+
+8. trianing samples and performance of validation data
+a. train: pos, neg (pos: Hitrate = 26.7 MRR = 2.1); val: trainpos; Hitrate = 22.7 MRR = 3.4; (due to overfitting and does not map to af)
+b. balance pos[:2134], neg: Loss: 0.1285
+pos: Hitrate = 22.2 MRR = 1.79; 
+trainpos: Hitrate = 14.7 MRR = 2.8; valmfs: Hitrate = 15.7 MRR = 0.7;
+(Data insufficiency)
+
+too less samples leads to data insufficiency and large leading to confusion.
 trainmf, trainbf.
 valmf: equal or higher(job over), low(overfitting, not many samples)
 valpos: poor(afs not trained), good(afs similar to mfs)
@@ -118,6 +192,7 @@ valpos: poor(afs not trained), good(afs similar to mfs)
 b. val: c. test:
 traindata: Hitrate = 26.3 MRR = 2.4
 valdata:   Hitrate = 26.6 MRR = 1.1
+Few quality samples(mfs, bfs) are chosen instead of large implicit connections.
 
 --------------------------------------------------
 Raw input features:
@@ -126,6 +201,8 @@ Hitrate = 23.3 MRR = 3.8;
 Rawvecs, perhaps performing bad for negative samples. During learning, it is optimizing for negative, thus the performance drops.
 
 b. val:  c. test:
+Pos: Hitrate = 28.2 MRR = 2.9; 
+trainpos: Hitrate = 23.3 MRR = 3.8; valmfs: Hitrate = 26.4 MRR = 1.2;
 
 --------------------------------------------------
 Random recs: 

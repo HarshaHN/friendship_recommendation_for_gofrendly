@@ -50,7 +50,7 @@ class dproc:
     def makepairs(links, trainflag):
         if trainflag==1:
             [mf, af, bf, vnf]  = links
-            mfs = set(tuple(zip(mf.user_id, mf.friend_id))) #16,108
+            mfs = set(tuple(zip(mf.user_id, mf.friend_id))) #120,409
             af = af.groupby(['activity_id'])['user_id'].apply(list)
             afs = set()
             for a,b in af.iteritems():
@@ -85,7 +85,7 @@ class dproc:
             submfs, subafs, subbfs, subvnfs = sub(mfs, ids), sub(afs, ids), sub(bfs, ids), sub(vnfs, ids)
             neg = (subbfs | subvnfs); pos = (submfs | subafs) - neg
             return [list(pos), list(neg)]
-            
+
         elif trainflag==0:
             [mfs] = links 
             """
@@ -154,7 +154,7 @@ class dproc:
         # df['story'] = pd.read_hdf("../data/one/stories.h5", key='01')
         
         """ 03. Stories to S-BERT emb """
-        df['emb'] = df['story'].apply(lambda x: np.random.randn(1204) if x!=-1 else -1)
+        df['emb'] = df['story'].apply(lambda x: np.random.randn(1024) if x!=-1 else -1)
         # df['emb'] = pd.read_hdf("../data/one/emb.h5", key='01')
         #df.drop(columns=['story'])
 
@@ -168,10 +168,6 @@ class dproc:
         # feat = pd.read_hdf("../data/one/trainfeat.h5", key='02')
         
         # 01. Numerical data        
-        #from sklearn.preprocessing import robust_scale
-        #feat.age = robust_scale(feat.age.to_numpy()[:, None])
-        #feat.lat = robust_scale(feat.lat.to_numpy()[:, None])
-        #feat.lng = robust_scale(feat.lng.to_numpy()[:, None])
 
         feat['num'] = feat.index
         feat['num'] = feat['num'].apply(lambda x: [feat.age[x], feat.lat[x], feat.lng[x]])
@@ -208,7 +204,7 @@ class dproc:
         # with open('../data/one/sublinks.pkl', 'wb') as f: # links.pickle
         #    pickle.dump([trainpos, trainneg], f) #402761, 72382 
 
-        with open('../data/one/sublinks.pkl', 'rb') as f: # links.pickle
+        with open('../data/one/rawidx_nw.pkl', 'rb') as f: # links.pickle
             [trainpos, trainneg] = pickle.load(f) #402761, 72382
         return [trainpos, trainneg]
 
@@ -244,3 +240,6 @@ class cleanse:
             if len(text) < 10: 
                 text = -1 #short texts
         return text
+
+
+# %%
