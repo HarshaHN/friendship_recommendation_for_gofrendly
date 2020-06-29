@@ -1,52 +1,44 @@
 
-
-#%%--------------------
-""" 03. GCP translator API """
-
-class gcpserver:
-
-    def gcptrans(text):
-        #Corpus with example sentences
-        """
-        texts = [ 'A man is eating food.',
-                    'A man is eating a piece of bread.',
-                    'The girl is carrying a baby.',
-                    'A man is riding a horse.',
-                    'A woman is playing violin.',
-                    'Two men pushed carts through the woods.',
-                    'A man is riding a white horse on an enclosed ground.',
-                    'A monkey is playing drums.',
-                    'A cheetah is running behind its prey.']
-        #import random; res = texts[random.randint(0,8)]
-        """
-        import numpy as np
-        return np.random.randn(1204) 
-
 #%%-------------------
-""" 02. stories translation with GCP """
-
+""" 01. stories translation with GCP """
 import pandas as pd
-df = pd.read_hdf("../data/one/trainfeat.h5", key='01')
-df = df.drop(columns=['iam', 'meetfor', 'age', 'marital', 'kids', 'lat', 'lng'])
+#df = pd.read_hdf("../data/one/trainfeat.h5", key='01')
+#df = df.drop(columns=['iam', 'meetfor', 'age', 'marital', 'kids', 'lat', 'lng'])
+#df.to_hdf("../data/one/cleansed_stories.h5", key='01')
+
+df = pd.read_hdf("../data/one/cleansed_stories.h5", key='01')
 num_chars = df.story.apply(lambda x: len(x) if x!=-1 else 0).sum(0) #3,947,808
-cost = num_chars*20/1000000-10; 
-print('cost =', round(cost),'USD or', round(cost*9.33),'SEK')
+cost = num_chars*20/1000000-10; print('cost =', round(cost),'USD or', round(cost*9.33),'SEK')
 # cost = 69.0 USD or 643.0 SEK
 
-#df['story'] = df['story'].apply(lambda x: gcpserver.gcptrans(x) if x!=-1 else -1)
-# df['story'].to_hdf("../data/one/stories.h5", key='01')
+#text = df.story.loc[657]
 
+#%%-------------------
+""" 02. Google Translator API """
+# Refer to translate.py
+stories_df = pd.read_hdf("../data/one/stories.h5", key='01')
 
 #%%---------------------
-""" SBERT """
+""" 03. SBERT """
+from tqdm import tqdm
+tqdm.pandas()
 
-# df = pd.read_hdf("../data/one/stories.h5", key='01')
 from sentence_transformers import SentenceTransformer
-sbertmodel = SentenceTransformer('roberta-large-nli-mean-tokens')
+sbertmodel = SentenceTransformer('roberta-base-nli-stsb-mean-tokens')
 
-# Generate embeddings
-before = time.time() #listup = lambda x: [x]
-df['emb'] = df['story'].apply(lambda x: sbertmodel.encode([x]) if x!=-1 else -1)
-print("-> S-BERT embedding finished.", (time.time() - before)) #534 sec
-#df.drop(columns = 'story', inplace = True)
-# df.to_hdf("../data/one/emb.h5", key='01')
+df = pd.read_hdf("../data/one/stories.h5", key='01')
+def encode(x): return sbertmodel.encode([x])[0]
+
+before = time.time()
+df['emb'] = df['story'].progress_apply(lambda x: encode(x) if x!=-1 else -1)
+print("-> S-BERT embedding finished.", (time.time() - before)) #6000s
+
+# df.drop(columns = 'story', inplace = True)
+# df.to_hdf("../data/one/stories_emb.h5", key='01')
+df = pd.read_hdf("../data/one/stories_emb.h5", key='01')
+
+
+#feat_df = pd.read_hdf("../data/one/trainfeat.h5", key='04') 
+#sbert_df = pd.read_hdf("../data/one/sbert_emb.h5", key='01')
+#feat_df['emb'] = sbert_df['emb']
+#feat_df.to_hdf("../data/one/user_features.h5", key='02') # ['emb', 'cat', 'num']

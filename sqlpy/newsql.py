@@ -12,7 +12,7 @@ def newsqldataext():
                 # count: a.120,409(119,750) b.128,138(122,768) c. 
                 'mf' : "SELECT a.user_id, a.friend_id FROM friends a\
                 INNER JOIN friends b ON (a.user_id = b.friend_id) AND (a.friend_id = b.user_id) WHERE (a.user_id > a.friend_id)",
-                'af' : "SELECT activity_id, user_id FROM activity_invites WHERE isGoing = 1",
+                #'af' : "SELECT activity_id, user_id FROM activity_invites WHERE isGoing = 1",
             }
     print('--> SQL query begins...')
     

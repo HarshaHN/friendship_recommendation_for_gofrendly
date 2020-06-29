@@ -7,41 +7,47 @@ Friendship recommendations based on user profile representation; output: [hitrat
 """
 
 #%%-----------------------------------
-""" 01. Load the feature data """
-import dproc
+""" 01. User features into Torch tensor """
+#import dproc
+import torch
+import pickle
 import pandas as pd
+import numpy as np
 
-# sqlusers = pd.read_hdf("../data/one/sqlusers.h5", key='01') #['user_id', 'story', 'iam', 'meetfor', 'birthday', 'marital', 'children', 'lat', 'lng']
-feat = pd.read_hdf("../data/one/trainfeat.h5", key='04') # ['emb', 'cat', 'num'] #dproc: preproc >> feature
-#[trainpos, trainneg] = dproc.dproc.loadlinks() #72382, 402761: (16063,56319), (2134,400627)
-[trainpos, trainneg, valmfs] = dproc.dproc.getlinks(feat.index)
+# sqlusers = pd.read_hdf("../data/one/sqlusers.h5", key='01') # dproc.py: preproc >> feature
+# ['user_id', 'story', 'iam', 'meetfor', 'birthday', 'marital', 'children', 'lat', 'lng']
+
+# 01: processed user features ['story', 'iam', 'meetfor', 'age', 'marital', 'kids', 'lat','lng']
+feat_df = pd.read_hdf("../data/one/user_features.h5", key='02') # ['emb', 'cat', 'num']
+feat_df['emb'] = feat_df['emb'].apply(lambda x: np.zeros(768) if type(x)==int else x)
+
+num_data = torch.tensor(list(feat_df.num), dtype=torch.float32)
+cat_data = torch.tensor(list(feat_df.cat), dtype=torch.float32)
+sbert_emb = torch.tensor(list(feat_df.emb), dtype=torch.float32)
+X = torch.cat((num_data, cat_data, sbert_emb), 1)
+
+with open('../data/one/X.pkl', 'wb') as f: pickle.dump(X, f)
+
+del cat_data, num_data, sbert_emb, f
 
 #%%-----------------------------------
-""" 02. Transform to model inputs """
-import torch
+""" 02. Load the network connections """
 
-categorical_data = torch.tensor(list(feat.cat), dtype=torch.float32)
-numerical_data = torch.tensor(list(feat.num), dtype=torch.float32)
-X = torch.cat((numerical_data, categorical_data), 1)
+# with open('../data/one/rawidx_nw.pkl', 'rb') as f: [trainpos, trainneg] = pickle.load(f)
+# 72382, 402761: (16063,56319), (2134,400627)
+# with open('../data/one/rawidx_valnw.pkl', 'rb') as f: valpos = pickle.load(f)
 
-ids = list(feat.index)
 id_idx = {id: n for n,id in enumerate(feat.index)} # dict(enumerate(feat.index))
-# trainpos = [(id_idx[a], id_idx[b]) for a,b in trainpos ]
-# trainneg = [(id_idx[a], id_idx[b]) for a,b in trainneg ]
-# pos = [(id_idx[a], id_idx[b]) for a,b in pos ]; #neg = [(id_idx[a], id_idx[b]) for a,b in neg ]
+trainpos = [(id_idx[a], id_idx[b]) for a,b in trainpos ]
+trainneg = [(id_idx[a], id_idx[b]) for a,b in trainneg ]
+valpos = [(id_idx[a], id_idx[b]) for a,b in valpos]
 
-valmfs = [(id_idx[a], id_idx[b]) for a,b in valmfs]
-# valpos = [(id_idx[a], id_idx[b]) for a,b in valpos]
+with open('../data/one/nw.pkl', 'rb') as f: [trainpos, trainneg] = pickle.load(f) # 16063, 2134
+with open('../data/one/valpos.pkl', 'rb') as f: valpos = pickle.load(f) #904
 
-del id_idx, numerical_data, categorical_data, ids, feat
+del f
 
-
-#%%------------------------------
-import pickle
-with open('colab.pkl', 'rb') as f: [G, X, trainpos, trainneg] = pickle.load(f)
-with open('mfbf.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
-with open('valmfs.pkl', 'rb') as f: valmfs = pickle.load(f)
-
+#misc: with open('colab.pkl', 'rb') as f: [G, X, trainpos, trainneg] = pickle.load(f)
 
 #%%----------------------------
 """ 01. Embedding similarity distribution """
