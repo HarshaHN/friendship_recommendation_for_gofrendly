@@ -42,7 +42,7 @@ df['kids'] = df['kids'].fillna('-1').astype('int32')       # df.kids.value_count
 # story
 mycleanse = cleanse()
 df['story'] = df['story'].apply(lambda x: mycleanse.cleanse(x))
-df.to_hdf('../data/one/all_processed_users', key='01')
+df.to_hdf('../data/one/all_processed_users.h5', key='01')
 
 
 #%%-----------------------------------
@@ -51,7 +51,7 @@ import pandas as pd
 import numpy as np
 
 # ['story', 'iam', 'meetfor', 'marital', 'kids', 'age', 'lat', 'lng']
-newdf = pd.read_hdf('../data/one/all_processed_users', key='01')
+newdf = pd.read_hdf('../data/one/all_processed_users.h5', key='01')
 newdf = newdf.drop(columns = ['story'])
 
 # 01. Numerical data

@@ -1,14 +1,22 @@
+hyper parameters:
+a. Randow walk params: length of walk, num of walks, num of neighbors
+b. convlayers, output_size, dropout, opt, select_loss, loss_margin
+-------------------------------------------------
+X_loss, X_hr, X_mrr = 0.0891, 26.4, 1.3
+nn01_loss, nn01_hr, nn01_mrr = 0.069, 27.1, 0.8 
+nn02_loss, nn02_hr, nn02_mrr = 0.073, 34.1, 1.0
 
-scaleup 120,000 (Map reduce inference)
-Include googletrans and include SBERT embeddings
-a. node-based Cosine encoder
-
-b.
-
---------------------------------------------------
+-------------------------------------------------------------------------------
 K = 500, users: 14948
 friend's neg conn wud become my neg conn
-IncrementalPCA, with whitening.
+
+Hitrate = 27.2 MRR = 1.9, Hitrate = 28.8 MRR = 0.6
+Hitrate = 52.0 MRR = 4.8, Hitrate = 34.1 MRR = 1.0
+Hitrate = 61.3 MRR = 7.1, Hitrate = 34.0 MRR = 0.9 : 816
+Hitrate = 37.3 MRR = 3.9, Hitrate = 28.7 MRR = 1.1 : 120k
+(37.3, 3.9)(28.7, 1.1)
+
+raw: (28.2, 2.9) (26.4, 1.3), (21.8, 1.6) (19.1, 0.6), (16.8, 1.6)(17.4, 0.6)
 
 --------------------------------------------------
 Graph-based:
@@ -25,6 +33,16 @@ pinsage: 0.5, 1, 2, 3, 5, didn't perormance well.
 trainpos: Hitrate = 28.7 MRR = 1.4
 layers: with dropout did not improve
 emb: less
+
+Random walk hyperparameters:
+64, 64, 64: [59.2, 5.2] [32.7, 0.9]
+8, 64, 64:  [59.0, 6.2] [31.6, 1.1] 
+8, 8, 8 :   [47.2, 4.1] [31.0, 0.9]
+64, 8, 64 : [46.8, 3.4] [31.0, 1.2]
+64, 32, 16: [51.1, 4.4] [30.7, 0.9]
+64, 64, 8:  [52.4, 5.7] [30.6, 1.0]
+
+
 
 without features:
 
@@ -90,22 +108,6 @@ loss_margin:- pinsage, [48,48]
 3. .75: 26.6 MRR = 5.6 to 25.1 MRR = 5.5
 4. 1: 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 b. loss_margin:- cosine, [48,48]
 0. 0.5: 24.3 MRR = 5.4 to 16.3 MRR = 4.1
 >1. -0.5: 29.6 MRR = 5.89 to  19.6 MRR = 4.8
@@ -119,14 +121,14 @@ loss_margin:- pinsage, [48,48]
 
 select_loss, output_size, epochs, 
 
+
 --------------------------------------------------
 Node-based cosine encoder:
+Kurtosis: -1.51, -1.20, -0.63, -0.19
 
 a. train: 
 #72382, 402761: (16063,56319), (2134,400627)
 
-Hitrate = 7.1 MRR = 1.70 to Hitrate = 4.8 MRR = 1.0, rise and plateau Hitrate = 9.3 MRR = 1.6
-raise to 16.6 MRR = 2.3
 setup: margin = -0.5, Loss: 0.5526, outsize 10, no layers.
 
 1. output_size: _, [], -0.5, pos, neg, lr = 3e-3/(i+1) for 4*50 or 66
@@ -188,35 +190,14 @@ too less samples leads to data insufficiency and large leading to confusion.
 trainmf, trainbf.
 valmf: equal or higher(job over), low(overfitting, not many samples)
 valpos: poor(afs not trained), good(afs similar to mfs)
-
-b. val: c. test:
-traindata: Hitrate = 26.3 MRR = 2.4
-valdata:   Hitrate = 26.6 MRR = 1.1
 Few quality samples(mfs, bfs) are chosen instead of large implicit connections.
-
---------------------------------------------------
-Raw input features:
-a. train: 
-Hitrate = 23.3 MRR = 3.8; 
-Rawvecs, perhaps performing bad for negative samples. During learning, it is optimizing for negative, thus the performance drops.
-
-b. val:  c. test:
-Pos: Hitrate = 28.2 MRR = 2.9; 
-trainpos: Hitrate = 23.3 MRR = 3.8; valmfs: Hitrate = 26.4 MRR = 1.2;
-
---------------------------------------------------
-Random recs: 
-a. train: Hitrate = 3.2 MRR = 0.8
-
-b. val:  c. test:
 
 -------------------------------------------------------------
 Training tips:
 a. loss = nan, increase vector size.
-b. all emb = 0, change margin and remove normalization layer.
+b. all emb = 0, change margin and remove/add normalization layer.
 c. 
 -------------------------------------------------------------
-
 EDA
 
 main['city'].value_counts()
@@ -225,25 +206,6 @@ Göteborg         9160
 Malmö            5388
 Uppsala          3342
 Örebro           2356
-
------------------------------------------------------------------------------------------
-C Model
------------
-                precision    recall  f1-score   support
-
-        Link       0.88      0.47      0.61        15
-     No-Link       0.43      0.86      0.57         7
-
-    accuracy                           0.59        22
-   macro avg       0.65      0.66      0.59        22
-weighted avg       0.73      0.59      0.60        22
-
-confusion matrix = [[7, 8],
-                    [1, 6]]
-
-positive = 53 (32 mutual frds, 21 activity friends)
-negative = 53 downsample from (8 blocked, 214 seen but not added as frd)
-Total = 385 users, 106 samples.
 
 -----------------------------------------------------------------------------------------
 SBERT 96 demo
@@ -281,3 +243,5 @@ Match: 79 , user_id: 769 cosine_dist: 0.37340970853121347 , story:
 
 Match: 68 , user_id: 748 cosine_dist: 0.38121501329800045 , story: 
  Hello ? I would think it would be fun to meet some more lovely girlfriends. ? Anyone finding a lot of fun with, train, coffee, talk for hours, have a glass of wine and so on? As a person, I am sociable, talkative, straight, honest, open and kind. My main interests are training and traveling. Hope we'll see each other! 
+ 
+nn01_loss, nn01_hr, nn01_mrr = 0.069, 27.1, 0.8 

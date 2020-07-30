@@ -7,45 +7,32 @@ Data pipeline, input: features, output: [hitrate, mrr]
 #%%--------------------
 import numpy as np
 import pandas as pd
-from scipy.spatial import distance
-from sklearn.neighbors import NearestNeighbors
 import networkx as nx
 import random
+import torch
+import torch.nn.functional as F
 
 class pipeflow:
 
-    def __init__(self, emb, K, nntype='cosine'):
-        self.num, fdim = emb.shape
-        self.emb = emb.numpy()
-        self.K = K
-        NN = {
-            'knn' : NearestNeighbors(n_neighbors=self.K),
-            'cosine': NearestNeighbors(n_neighbors=self.K, algorithm='brute', metric='cosine')
-            }
-        self.neigh = NN[nntype]
-        self.neigh.fit(emb)
-        # print('-> Nearest neighbor model initialised.')
-
+    def __init__(self, emb, K):
+        self.num = emb.shape[0]
+        self.emb = emb
+        self.K = K+1
 
     def dfmanip(self, pos):
         df = pd.DataFrame({'id': range(self.num)}) #num of nodes in graph G
         
-        #validation set
+        # validation set
         actualG = nx.Graph()
         actualG.add_edges_from(pos)
-        df['actual'] = df.index
         df['actual'] = df['id'].apply(lambda x: list(actualG.neighbors(x)) if x in actualG else -1)
-        
-        """ #To filter-out seen users
-        tempdf = df['id'] #load the tempdf = df['ids', 'filtered']
-        df['filtered'] = df['ids'].apply(lambda user: tempdf.loc[id_idx[user], 'filtered'])  """      
-
-        # Run K-NN and get recs 
-        df['recs'] = df['id'].apply(lambda user: self.krecs(user))
+         
+        # Run K-NN and get pred 
+        df['pred'] = df['id'].apply(lambda user: self.krecs(user))
 
         # Eval metrics
-        df['hitrate'] = df['id'].apply(lambda x: self.hitrate(df.loc[x, 'actual'], df.loc[x, 'recs']) if df.loc[x, 'actual'] != -1 else 0)
-        df['mrr'] = df['id'].apply(lambda x: self.mrr(df.loc[x, 'actual'], df.loc[x, 'recs']) if df.loc[x, 'hitrate']>0 else 0)
+        df['hitrate'] = df['id'].apply(lambda x: self.hitrate(df.actual[x], df.pred[x]) if df.actual[x] != -1 else 0)
+        df['mrr'] = df['id'].apply(lambda x: self.mrr(df.actual[x], df.pred[x]) if df.hitrate[x]>0 else 0)
 
         size = actualG.number_of_nodes()
         self.mrr_avg = round(df['mrr'].sum()/size, 3)*100
@@ -56,24 +43,20 @@ class pipeflow:
         return [self.hitrate_avg, self.mrr_avg]
 
     def krecs(self, user):
-        res = list(self.neigh.kneighbors([self.emb[user]], self.K, return_distance=False)[0][1:])
-        # res = random.sample(range(self.num), self.K)
+        output = F.cosine_similarity(self.emb[user][None,:], self.emb);
+        res = torch.topk(output, self.K).indices.tolist()
+        #res = random.sample(range(self.num), self.K)
         return res
 
     @staticmethod
-    def mrr(actual, recs):
-        match = list(set(actual).intersection(set(recs)))
-        rank = [1+recs.index(i) for i in match]
+    def mrr(actual, pred):
+        match = list(set(actual).intersection(set(pred)))
+        rank = [1 + pred.index(i) for i in match]
         return 1/min(rank)
 
     @staticmethod
-    def hitrate(actual, recs):
+    def hitrate(actual, pred):
         a = set(actual)
-        c = a.intersection(set(recs)) 
-        return len(c)/len(a)
-
-    def eval(self):
-        pass
-
-#%%
-
+        c = a.intersection(set(pred)) 
+        res = len(c)/len(a)
+        return res
