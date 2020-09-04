@@ -1,3 +1,19 @@
+
+#misc
+01_data_from_gofrendly/0*
+99_misc/
+#03_docs_(includes_results)/
+
+# data files
+*.pdf
+*.png
+*.jpg
+*.csv
+*.h5
+*.pkl
+*.pth
+*.zip
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,20 +143,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-
-# input data and models
-misc/
-models/
-data/raw
-
-
-# data files
-*.csv
-*.h5
-*.pkl
-*.pth
-*.zip
 
 #others
 *.pytest_cache
