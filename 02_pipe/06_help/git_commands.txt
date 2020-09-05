@@ -1,0 +1,14 @@
+# First time
+git init
+git add --all
+git commit -m "initial commit"
+git config --global user.email harshahn@kth.se
+git config --global user.name harshahn
+git push -u origin master
+git remote rm origin
+
+# Often
+git push -u origin master
+git status
+git add .
+git commit -m "name"

@@ -1,0 +1,10 @@
+Question: 
+I would like 5-6 sentences on how your work would effect/benefit our users if implemented in GoFrendly? Functions and value.
+
+Answer:
+Friendship recommendation systems are proven to boost Customer satisfaction leading to customer retention, known to provide user personalization which leads to users in better mood to use the services, and lastly, a robust discovery of social friends which enlists a diverse recommendations leading to a revisit[1]. The functionality involves offering social recommendations based on the the patterns seen among friends such as profile semantics and friend circle. Recommendation systems are a secret receipe and widely in practise extending to Netflix. Over 80% of the videos watched on Netflix is through recommendations and 60% in Youtube. Netflix estimated, that its recommendation engine is worth a yearly $1billion[2]. 
+
+References:
+[1] https://towardsdatascience.com/5-advantages-recommendation-engines-can-offer-to-businesses-10b663977673  
+[2] https://www.businessinsider.in/Why-Netflix-thinks-its-personalized-recommendation-engine-is-worth-1-billion-per-year/articleshow/52754724.cms
+

@@ -1,0 +1,10 @@
+
+# Training tips
+a. If loss = nan, then increase vector size.
+b. If all embeddings are = 0, then change margin and/or add normalization layer.
+c. 
+
+# References: 
+http://snap.stanford.edu/proj/embeddings-www/files/
+https://web.stanford.edu/class/cs224w/
+Elastic search: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-index.html

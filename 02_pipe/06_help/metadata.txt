@@ -1,0 +1,24 @@
+
+# Cities
+main['city'].value_counts()
+Stockholm       14948
+Göteborg         9160
+Malmö            5388
+Uppsala          3342
+Örebro           2356
+
+# language translation
+Avg story length is 400 ch per user = 36 million characters * 20$ per million = 720$
+conda install -c conda-forge langdetect
+pip install spacy-langdetect
+conda install -c conda-forge google-cloud-translate
+
+user filters = 
+user_details: [ lang, user_id, myStory, platform, platformVersion, appVersion, district, marital, meetForCustom, deviceName, meetFor, describeYourself, children, iAm, iAmCustom, user_details, country, city ]
+
+users: [ lat, minPreferredAge, farFriends, isProfileCompleted, name, roleId, premiumExpireTime, lng, isDeleted, id, maxPreferredAge, birthday, deletedAt, sClub, isPremium, email, updatedAt, lastLogin, googlePlusId, isActive, firebaseUid, surname, file_id, isBanned, createdAt, stripeCustomerId, users, facebookId ]
+
+marital: -1 - n/a, 0 - Single, 1 - In a relationship, 2 - Married, 3 - Its complicated
+children: -1 - n/a, 0 - no children, 1 - have children, 2 - not important
+
+Questions: is active, is banned, 

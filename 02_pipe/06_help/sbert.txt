@@ -1,0 +1,36 @@
+
+SBERT Demo:
+
+Matches for user_id: 669 with story: 
+ I would like to meet for AW, dining, walking and exercise. Hope to hear from you! ? ️? 
+
+--- 0.003999948501586914 seconds ---
+Match: 13 , user_id: 669 cosine_dist: 0.0 , story: 
+ I would like to meet for AW, dining, walking and exercise. Hope to hear from you! ? ️? 
+
+Match: 58 , user_id: 732 cosine_dist: 0.28645690899463727 , story: 
+ Would love to expand my circle of friends with like-minded girls who would like to try new training activities, take long walks, having deep conversations, eating good dinners (and brunch! And drink a glass of wine or beer every now and then. It would be great fun if you also like to travel , ski and shop! 
+
+Match: 3 , user_id: 658 cosine_dist: 0.2995463496241545 , story: 
+ Positive and calls hungry. Likes to move around both in the forest and land in an urban environment with both hiking boots, running shoes as regular sneakers. Coaching happy and it would be fun to have company on the running track. Would also like to have someone / some munching good dinners, or perhaps have a spelkväll or something like that. Train? Society wanted the gym (Kit) Single full time with Nils four years. Of course, he takes a lot of my time but I hope to meet and socialize with all kinds of people anyway. I end up a bit through the cracks in general, I have children but are not part of a couple. hope somebody seems to me to fun anyway. Viewing doctor. I've read quite a lot and enjoy it while I can find it hard to be older and students right now. Looking nice people to broaden my circle of friends with. It would also be fun to meet other single people, with children of different ages. Feel like I need you, to get the pepper and learn from. 
+
+Match: 91 , user_id: 781 cosine_dist: 0.2995606379419351 , story: 
+ Social and curious mind. Keen to try new restaurants in town. Glad to meet new friends to talk about everything between heaven and earth with! 
+
+Match: 21 , user_id: 679 cosine_dist: 0.31223423254828153 , story: 
+ Hey! Is a training crazy girl who likes to have fun. Looking to meet new people to hang out with. Have a drink on the town, go on weekend trips, work out or just lounging at home and talk about life. Please let me know so we can find on something fun? 
+
+Match: 26 , user_id: 685 cosine_dist: 0.3484102744863764 , story: 
+ Want to meet some new friends who you can find at all possible! ️ love long dinners, wine, interior, loose sweets, walking, traveling and skiing. 
+
+Match: 34 , user_id: 702 cosine_dist: 0.3548096537977319 , story: 
+ I love to cook, walk, work out, do things (excursions) or just take the quiet. Working as HR Advisor. Many of my friends studying abroad and therefore it would be fun to find some new girlfriends / bunch. If you like to drink wine / beer, bruncha, eating good dinners, working out or just a long walk then maybe we can be friends? Preferably someone who simply can take with me on things as easily as I can take with you? Send a message do I know? 
+
+Match: 9 , user_id: 664 cosine_dist: 0.3729456074922992 , story: 
+ Hey! Would be really fun to meet new gay friends are ready for a little adventure and would like to share some of his positive energy. 
+
+Match: 79 , user_id: 769 cosine_dist: 0.37340970853121347 , story: 
+ Is the social worker and works on soc. Like training (crossfit and running) walk, play golf, eat food. Looking for someone fun who likes to do the same, or something else entirely. Would love to experience new things with someone fun. Mountain hiking is high on the wish list, for example. Dreaming, moreover, the most in training, and has been quite difficult to decide what I really want to do. in training and in life? 
+
+Match: 68 , user_id: 748 cosine_dist: 0.38121501329800045 , story: 
+ Hello ? I would think it would be fun to meet some more lovely girlfriends. ? Anyone finding a lot of fun with, train, coffee, talk for hours, have a glass of wine and so on? As a person, I am sociable, talkative, straight, honest, open and kind. My main interests are training and traveling. Hope we'll see each other! 

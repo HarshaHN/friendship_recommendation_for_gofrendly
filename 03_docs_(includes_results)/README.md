@@ -15,4 +15,5 @@ d. 04_gofrendly_docs
 Files that were shared with gofrendly.
 
 More information:
+Schedule: https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
 ...

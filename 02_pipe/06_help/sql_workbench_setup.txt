@@ -1,0 +1,37 @@
+#Setup MySQL server
+1. Enable MySQL80 under services in task manager
+2a. Open My SQL Work bench:
+Connection name: local, Hostname: 127.0.0.1, Port: 3306, Username: root, TCP/IP.
+2b. Navigate to local server:
+Data import: select import from Self-Contained File; choose the .sql file [1]; must be displayable on the schema.
+3. Open Dbeaver:
+New database connection; select MySQL 8+; Server Host = localhost; Port = 3306; 
+Username: root; password = gofrendly; 
+4. Use sql query from python using pymysql library.
+
+[1]. https://www.youtube.com/watch?v=C9AGrSJ6ZB0&t=183s
+other help: https://stackoverflow.com/questions/32022580/failed-to-connect-to-mysql-at-localhost3306-with-user-root
+
+---------------------------------------------------------------------------------------
+# Linux: VSCode
+cd harsha/code-server
+PASSWORD=harsha ./01_code-server/code-server --host 0.0.0.0 --port 10000
+
+Linux:
+D:\GoFrendly\archive\gofrendly.sql
+sudo su
+mysql
+CREATE USER 'gofrendly'@'localhost' IDENTIFIED BY 'gofrendly';
+GRANT SELECT ON * . * TO 'gofrendly'@'localhost';
+FLUSH PRIVILEGES;
+SHOW GRANTS gofrendly;
+quit
+mysql -u gofrendly -p gofrendly < data/gofrendly.sql
+exit
+
+#Data transfer over LAN: key generation
+cd
+cd .ssh
+ls
+ssh-keygen -t rsa -b 4096
+cat id_rsa.pub

@@ -1,16 +1,19 @@
-# 01_data_from_gofrendly
+# 02_pipe
+Recommendation data pipeline
 
-SQL snapshots of the gofrendly server data (Raw data)
+a. 01_sql_query
 
-a. 04072020 
-File collected on 07 April 2020 and serves as training data for our system.
+b. 02_data
+Data obtained from SQL query.
 
-b. 05072020 
-File collected on 07 May 2020 and serves as validation data for our system.
+c. 03_data_prep
 
-c. 08072020 
-File collected on 07 Aug 2020 and serves as test data for our system.
+d. 04_neural_nw
+
+e. 05_recommendations_and_evaluation
+
+f. 06_help
+Other helpful files such as guide to setup workbench.
 
 More information:
-The training data is used for training the model. The validation data is used to evaluate the trained model performance to iteratively develop the model.
-The test data is used to benchmark the model performance after the development phase is complete.
+Schedule: https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
