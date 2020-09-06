@@ -5,6 +5,7 @@
 #03_docs_(includes_results)/
 
 # data files
+*.json
 *.pdf
 *.png
 *.jpg
