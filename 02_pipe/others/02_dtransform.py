@@ -1,7 +1,7 @@
 #%%
 """
-File: dcleanse.py
-To clean the data and includes imputation, text cleansing. 
+File: dtransform.py
+To transform the data into numerical tensors.
 """
 
 #%%
@@ -10,32 +10,73 @@ import pandas as pd
 import re
 import emoji #conda install -c conda-forge emoji
 
+class dtransform:
 
-class dcleanse:
-    # multiple punctuation symbols to remove
-    r = re.compile(r'([.,/#!?$%^&*;:{}=_`~()-])[.,/#!?$%^&*;:{}=_`~()-]+')
 
-    @classmethod
-    def cleanse(cls, text):
-        if (text == '') or (text == None): #.isnull()
-            text = -1
-        else:
-            text = text.replace("\n", ". ") #to remove line breaks
-            text = emoji.get_emoji_regexp().sub(u'', text) #to remove emojis
-            text = cls.r.sub(r'\1', text) #to remove multiple punctuations
-            if len(text) < 10: 
-                text = -1 #to remove short texts
-        return text
 
-    @classmethod
+# DGL graph
+@staticmethod
+def makedgl(num, pos):
+    G = dgl.DGLGraph()
+    G.add_nodes(num)
+    G.add_edges(G.nodes(), G.nodes()) #self loop all
+    G.add_edges(*zip(*pos)) #add edges list(zip(*pos))
+    G = dgl.to_bidirected(G) 
+    G = dgl.graph(G.edges(), 'user', 'frd')
+    print('-> Graph G has %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
+    return G  
+
+
+
+
+
+
+
+
+#%%
+"""
+File: sbert.py
+To generate SBERT embeddings for user stories.
+"""
+
+#%%
+""" 01. Import data """
+import pandas as pd
+stories_df = pd.read_hdf("out/stories/stories_eng.h5", key='01')
+
+#%%---------------------
+""" 02. SBERT """
+from tqdm import tqdm
+tqdm.pandas()
+
+from sentence_transformers import SentenceTransformer
+sbertmodel = SentenceTransformer('roberta-base-nli-stsb-mean-tokens')
+
+def encode(x): 
+    return sbertmodel.encode([x])[0]
+
+before = time.time()
+stories_df['emb'] = stories_df['story'].progress_apply(lambda x: encode(x) if x!=-1 else -1)
+print("-> S-BERT embedding finished.", (time.time() - before)) #6000s
+
+#%%
+"""03. Save the files """
+stories_df.drop(columns = 'story', inplace = True)
+sbert_df = pd.read_hdf("out/stories/sbert_emb.h5", key='01')
+
+
+
+
+
+
+    @staticmethod
     def process(df):
         # ['index', 'id', 'story', 'iam', 'meetfor', 'age', 'marital', 'kids', 'lat', 'lng']
-        # stockholm_users_df.set_index('id', inplace = True) <<<
         
         """ cleanse and imputation """
         #'iam', 'meetfor'
-        df['iam'] = df['iam'].apply(lambda x: list(x.split(',')) if ((x!=None) and (len(x)>0)) else -1).astype('int32')
-        df['meetfor'] = df['meetfor'].apply(lambda x: list(x.split(',')) if ((x!=None) and (len(x)>0)) else -1).astype('int32')
+        df['iam'] = df['iam'].apply(lambda x: list(x.split(',')) if ((x!=None) and (len(x)>0)) else -1)
+        df['meetfor'] = df['meetfor'].apply(lambda x: list(x.split(',')) if ((x!=None) and (len(x)>0)) else -1)
         
         #'birthday' to age
         df['age'] = df['age'].apply(lambda x: int((x.today() - x).days/365)).clip(18, 100).astype('int32')
@@ -45,10 +86,16 @@ class dcleanse:
         df['kids'] = df['kids'].fillna('-1').astype('int32')       # df.kids.value_counts().keys()
 
         # story
-        df['story'] = df['story'].apply(lambda x: dcleanse.cleanse(x))
-        df.to_hdf('out/userinfo_cleaned_test.h5', key='dcleanse')
+        df['story'] = df['story'].apply(lambda x: dcleanse.textcleanse(x))
+        print('-> User info has been cleaned!')
 
+        return df
 
+#%% To execute class dcleanse
+cleanse_op = dcleanse()
+stockholm_users_df = pd.read_hdf("../02_data_organization/out/stockholm_users.h5", key='dorg')
+df = cleanse_op.process(stockholm_users_df)
+df.to_hdf('out/userinfo_cleaned.h5', key='dcleanse')
 
 #%% To execute class dorg
 cleanse_op = dcleanse()
@@ -58,6 +105,12 @@ cleanse_op.process(stockholm_users_df)
 #org_op.train_links(list(stockholm_users_df.user_id)) #saved as out/train_links.pkl
 #org_op.train_userinfo(stockholm_users_df)            #saved as out/stockholm_users.h5", key='dorg'
 
+#%%
+# df.to_hdf("../data/one/stories_emb.h5", key='01')
+#feat_df = pd.read_hdf("../data/one/trainfeat.h5", key='04') 
+#sbert_df = pd.read_hdf("../data/one/sbert_emb.h5", key='01')
+#feat_df['emb'] = sbert_df['emb']
+#feat_df.to_hdf("../data/one/user_features.h5", key='02') # ['emb', 'cat', 'num']
 
 
 #%%
@@ -132,17 +185,6 @@ def loadlinks():
         [trainpos, trainneg] = pickle.load(f) #402761, 72382
     return [trainpos, trainneg]
 
-# DGL graph
-@staticmethod
-def makedgl(num, pos):
-    G = dgl.DGLGraph()
-    G.add_nodes(num)
-    G.add_edges(G.nodes(), G.nodes()) #self loop all
-    G.add_edges(*zip(*pos)) #add edges list(zip(*pos))
-    G = dgl.to_bidirected(G) 
-    G = dgl.graph(G.edges(), 'user', 'frd')
-    print('-> Graph G has %d nodes' % G.number_of_nodes(), 'with %d edges' % (G.number_of_edges()/2)) 
-    return G  
 
 
 # %%

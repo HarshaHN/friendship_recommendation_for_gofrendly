@@ -87,7 +87,7 @@ def onehotencode(input, dim):
             for ind in input:
                 if ind < dim: onehot[ind] = 1
     except:
-        print('Error for',input)
+        print('Error for', input)
     return onehot
 
 newdf['cat'] = newdf.index
