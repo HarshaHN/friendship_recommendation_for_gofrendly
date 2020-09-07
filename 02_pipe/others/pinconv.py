@@ -13,6 +13,7 @@ import dgl.function as fn
 import torch.nn.functional as F
 #dgl.load_backend('pytorch')
 
+
 """ 01. PinsageConv """
 class PinConv(nn.Module):
 
@@ -40,17 +41,21 @@ class PinConv(nn.Module):
         self.dropout_one = nn.Dropout(dropout)
         self.dropout_two = nn.Dropout(dropout)
 
+        #device
+        #self.device = xm.xla_device() 
+        self.device = th.device('cuda')# if th.cuda.is_available() else 'cpu')
+
     def forward(self, graph, feat):
         graph = graph.local_var()
 
-        graph.srcdata['h'] = self.dropout_one(self.bnorm_two(F.relu(self.Q(feat))))
+        graph.srcdata['h'] = self.dropout_one(self.bnorm_two(F.relu(self.Q(feat)))).to(self.device)
 
         def mfunc(edges):
             return {'m':edges.src['h'], 'a':edges.data['w']}
 
         def rfunc(nodes):
-            m = nodes.mailbox['m']
-            a = nodes.mailbox['a'] 
+            m = nodes.mailbox['m'].to(self.device)
+            a = nodes.mailbox['a'].to(self.device)
             res = th.mul(a[:,:,None], m).sum(1)
             res = res / a.sum(1)[:, None]
             return {'h': res}

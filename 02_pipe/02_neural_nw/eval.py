@@ -1,30 +1,36 @@
 """
+File: eval.py
 Date: 16 May 2020
-Author: Harsha harshahn@kth.se
-Data pipeline, input: features, output: [hitrate, mrr]
+Author: Harsha HN harshahn@kth.se
+Evaluation of the recommender system
+input: node/user embeddings, output: [hitrate, mean reciprocal rank]
 """
 
 #%%--------------------
+import torch
+import random
 import numpy as np
 import pandas as pd
 import networkx as nx
-import random
-import torch
 import torch.nn.functional as F
 
-class pipeflow:
+class evalpipe:
 
-    def __init__(self, emb, K):
-        self.num = emb.shape[0]
-        self.emb = emb
+    def __init__(self, node_emb, K):
+        """
+        node_emb : learnt node embeddings
+        K : number of recommendations
+        """
         self.K = K+1
+        self.node_emb = node_emb
+        self.num = node_emb.shape[0]
 
-    def dfmanip(self, pos):
+    def compute(self, actual_pos):
         df = pd.DataFrame({'id': range(self.num)}) #num of nodes in graph G
         
         # validation set
         actualG = nx.Graph()
-        actualG.add_edges_from(pos)
+        actualG.add_edges_from(actual_pos)
         df['actual'] = df['id'].apply(lambda x: list(actualG.neighbors(x)) if x in actualG else -1)
          
         # Run K-NN and get pred 
@@ -38,12 +44,11 @@ class pipeflow:
         self.mrr_avg = round(df['mrr'].sum()/size, 3)*100
         self.hitrate_avg= round(df['hitrate'].sum()/size, 3)*100
         
-        # df.set_index('user_id', inplace = True)
         print('Hitrate =', self.hitrate_avg, 'MRR =', self.mrr_avg)
         return [self.hitrate_avg, self.mrr_avg]
 
     def krecs(self, user):
-        output = F.cosine_similarity(self.emb[user][None,:], self.emb);
+        output = F.cosine_similarity(self.node_emb[user][None,:], self.node_emb)
         res = torch.topk(output, self.K).indices.tolist()
         #res = random.sample(range(self.num), self.K)
         return res

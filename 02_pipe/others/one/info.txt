@@ -1,6 +1,0 @@
-user_features.h5
-01: processed user features
-['story', 'iam', 'meetfor', 'age', 'marital', 'kids', 'lat','lng']
-02: embeddings of user features
-['emb', 'num','cat']
-03: 

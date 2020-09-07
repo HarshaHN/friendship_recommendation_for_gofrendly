@@ -7,7 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1bZbq0ZY1C3gIyePJB9F0N6eGW93PYBG3
 """
 
-#%%---------------------------------
 import os
 os.chdir('/content/drive/My Drive/gofrendly')
 #os.getcwd()
@@ -24,6 +23,10 @@ print(torch.cuda.get_device_name(0)) #'Tesla P100'
 #print(os.cpu_count()) #2
 #!nvidia-smi
 
+import pickle
+import dgl
+import time
+
 """
 VERSION = "nightly" 
 #param ["20200220","nightly", "xrt==1.15.0"]
@@ -34,33 +37,21 @@ VERSION = "nightly"
 import torch_xla
 import torch_xla.core.xla_model as xm
 
-device = xm.xla_device() """
+device = xm.xla_device() 
+"""
 
 #%%-------------------------------------------------
 # Load the files
 import pickle
 import dgl
  
-choice = 1
- 
-if choice == 1:
-  # 15,000 | 48 
-  with open('data/colab.pkl', 'rb') as f: [_, X, _, _] = pickle.load(f) #[G, X, trainpos, trainneg]
-  with open('data/nw.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
-  with open('data/valpos.pkl', 'rb') as f: valpos = pickle.load(f)
-elif choice == 2:
-  # 15,000 | 816
-  with open('data/X.pkl', 'rb') as f: X = pickle.load(f)
-  with open('data/nw.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
-  with open('data/valpos.pkl', 'rb') as f: valpos = pickle.load(f)
-elif choice == 3:
-  # 120,000 | 48
-  with open('data/all_X.pkl', 'rb') as f: X = pickle.load(f)
-  with open('data/all_nw.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
-  with open('data/all_valpos.pkl', 'rb') as f: valpos = pickle.load(f)
-  with open('data/nw.pkl', 'rb') as f: [pos2, neg2] = pickle.load(f)
-  with open('data/valpos.pkl', 'rb') as f: valpos2 = pickle.load(f)
-  #with open('data/idx.pkl', 'rb') as f: idx = pickle.load(f)
+
+# 14,948 | 816
+with open('data/X.pkl', 'rb') as f: X = pickle.load(f)
+with open('data/nw.pkl', 'rb') as f: [pos, neg] = pickle.load(f)
+with open('data/valpos.pkl', 'rb') as f: valpos = pickle.load(f)
+with open('data/testpos.pkl', 'rb') as f: testpos = pickle.load(f)
+
  
 #with open('one.pkl', 'rb') as f: [emb] = pickle.load(f)
  
@@ -73,7 +64,6 @@ X = X.to(device); print(X.is_cuda); print(X.shape)
 # pos, neg, valpos = pos.to(device), neg.to(device), valpos.to(device)
 # print(pos.is_cuda, neg.is_cuda, valpos.is_cuda)
 
-#%%---------------------------------
 import dgl
 import time
 
@@ -94,7 +84,7 @@ G = makedgl(num=len(X), pos=pos)
 import dgl
 import torch
 rw = dgl.sampling.RandomWalkNeighborSampler(G = G, 
-                                            random_walk_length = 64,
+                                            random_walk_length = 32,
                                             random_walk_restart_prob=0,
                                             num_random_walks = 32,
                                             num_neighbors = 16,
@@ -108,7 +98,7 @@ print('-> Graph G has %d nodes' % rwG.number_of_nodes(), 'with %d edges' % (rwG.
 print('Time taken:', time.time() - t0)
 
 # ng.predecessors(1) # ng.edata['w'][ng.edge_ids(*ng.in_edges(1))]
-#with open('data/rwG_3.pkl', 'wb') as f: pickle.dump(rwG, f)
+#with open('data/rwG_s2.pkl', 'wb') as f: pickle.dump(rwG, f)
 
 #%%----------------------
 """ 01. Graph Neural Network """
@@ -125,11 +115,10 @@ import importlib; importlib.reload(nn); importlib.reload(pipe)
 # x = X[:, 48:]
 # with open('data/one.pkl', 'rb') as f: x = pickle.load(f)
 # neg = neg; pos = pos  #402761: (2134,400627) #72382: (16063,56319)
-# with open('data/rwG_3.pkl', 'rb') as f: rwG = pickle.load(f) # 121109: 180963, 404803
  
 fdim = X.shape[1]
-indices = list(range(X.shape[0]))
-#indices = idx
+#idx = list(range(X.shape[0])); trainpos = pos
+with open('data/rwG_s2.pkl', 'rb') as f: rwG = pickle.load(f) # 121109: 180963, 404803
  
 twomodel = nn.gnet( graph = rwG,
                     nodeemb = X, #.to(device),
@@ -141,69 +130,89 @@ twomodel = nn.gnet( graph = rwG,
                     opt = 'RMSprop', # Rprop, RMSprop, Adamax, AdamW, Adagrad, Adadelta, SGD, Adam
                     select_loss = 'cosine', #'pinsage'
                     loss_margin = 0.25, # 0.25
-                    pos = pos, #16063
-                    neg = neg, #2134
-                    val_pos = valpos,
-                    idx = indices)
+                    train_pos = pos,
+                    train_neg = neg,
+                    val_pos = valpos)
  
 twomodel.to(device)
  
 # nn01_loss, nn01_hr, nn01_mrr = 0.069, 27.1, 0.8 
 print(X.shape)
 
-#%%---------------------------------
+num_params = sum(p.numel() for p in twomodel.parameters() if p.requires_grad)
+print(num_params) 
+#1: 9745, 727249 
+#2: 2672401, 14869969
+#3: 9745
+
 """ 03. a. Training """
- 
-epochs = 300
-lr = 3e-4 #3e-4 #6e-4
-loss_interval, eval_interval, emb_interval = 5, 50, 50
+
+ #3e-4 #6e-4 
+# lr = 3e-4; epochs = 400; loss_interval, eval_interval, emb_interval = 5, 50, 50 # 
+#lr = 1e-5; epochs = 600; loss_interval, eval_interval, emb_interval = 5, 50, 50 # e1
+lr = 4e-4; epochs = 480; loss_interval, eval_interval, emb_interval = 5, 50, 50 # e2
+
 intervals = [loss_interval, eval_interval, emb_interval]
- 
 twomodel.optimizer  = getattr(torch.optim, 'RMSprop')(twomodel.net.parameters(), lr)
 [newemb, train_eval, val_eval, loss_values, embs] = twomodel.train(epochs, intervals)
 
-#%%---------------------------------
 import pickle
-#with open('data/two_.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
-print(max(train_eval), max(val_eval))
-
-#%%---------------------------------
-import pickle
-# with open('data/two_training.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
-# with open('data/two_s1.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
-# with open('data/two_s2.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
-
-with open('data/two_training.pkl', 'rb') as f: [newemb, train_eval, val_eval, loss_values, embs] = pickle.load(f) #400, 50, 100 #3e-4
-# with open('data/two_s1.pkl', 'rb') as f: [newemb, train_eval, val_eval, loss_values, embs] = pickle.load(f) #
-# with open('data/two_s2.pkl', 'rb') as f: [newemb, train_eval, val_eval, loss_values, embs] = pickle.load(f)
-
+#with open('data/two_training.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
+#with open('data/two_s1_training.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
+#with open('data/two_s2_training.pkl', 'wb') as f: pickle.dump([newemb, train_eval, val_eval, loss_values, embs], f)
 #with open('data/two.pkl', 'wb') as f: pickle.dump(embs[-1], f)
+#with open('data/two_s1.pkl', 'wb') as f: pickle.dump(embs[3], f)
+#with open('data/two_s2.pkl', 'wb') as f: pickle.dump(embs[-3], f)
 
-nn01_loss, nn01_hr, nn01_mrr = 0.069, 27.1, 0.8 
-nn02_loss, nn02_hr, nn02_mrr = 0.073, 34.1, 1.0
+#with open('data/two_training.pkl', 'rb') as f: [newemb, train_eval, val_eval, loss_values, embs] = pickle.load(f); epochs = 400; loss_interval, eval_interval, emb_interval = 5, 50, 100 #400, 50, 100 #3e-4
+#with open('data/two_s1_training.pkl', 'rb') as f: [newemb, train_eval, val_eval, loss_values, embs] = pickle.load(f) #480, 60, 60
+#with open('data/two_s2_training.pkl', 'rb') as f: [newemb, train_eval, val_eval, loss_values, embs] = pickle.load(f); epochs = 480; loss_interval, eval_interval, emb_interval = 5, 60, 60 #400, 50, 100 #3e-4
+#with open('data/two.pkl', 'rb') as f: two = pickle.load(f)
 
-max(val_eval)
+#nn01_loss, nn01_hr, nn01_mrr = 0.079, 27.1, 0.8 
+#nn02_loss, nn02_hr, nn02_mrr = 0.073, 34.1, 1.0
+#nn_loss, nn_hr, nn_mrr = 0.073, 34.1, 1.0
 
-#%%---------------------------------
+""" Test data """
+import time
+import pipe
+import importlib; importlib.reload(pipe)
+
+t0 = time.time()
+
+#with open('data/two.pkl', 'rb') as f: two = pickle.load(f)
+#with open('data/two_s1.pkl', 'rb') as f: two = pickle.load(f)
+#with open('data/two_s2.pkl', 'rb') as f: two = pickle.load(f)[idx]
+#with open('data/testpos.pkl', 'rb') as f: testpos = pickle.load(f)
+
+onepipe = pipe.pipeflow(X[idx], K=500)
+
+res_train = onepipe.dfmanip(trainpos)
+res_val = onepipe.dfmanip(valpos)
+res_test = onepipe.dfmanip(testpos)
+
+print('Time taken:', time.time()-t0)
+
+# Hitrate = 28.3 MRR = 2.2, Hitrate = 26.2 MRR = 1.0, Hitrate = 24.9 MRR = 1.1 #Non-learned
+# Hitrate = 21.8 MRR = 1.6, Hitrate = 19.1 MRR = 0.6, Hitrate = 18.5 MRR = 0.9 #Non-learned E1
+# Hitrate = 28.1 MRR = 2.2, Hitrate = 26.7 MRR = 0.9, Hitrate = 25.0 MRR = 1.0 #Non-learned E2
+# Hitrate = 52.0 MRR = 4.8, Hitrate = 34.1 MRR = 1.0, Hitrate = 29.6 MRR = 1.2
+# Hitrate = 65.6, MRR = 8.6, Hitrate = 34.6 MRR = 1.4, Hitrate = 31.6 MRR = 1.5 #E1
+# Hitrate = 34.8 MRR = 2.6, Hitrate = 29.2 MRR = 0.9, Hitrate = 25.7 MRR = 1.0 #E2
+
 import matplotlib.pyplot as plt 
 import seaborn as sns
 
-epochs = 400
-#lr = 3e-4 #6e-4
-loss_interval, eval_interval, emb_interval = 5, 50, 100
 ""
 # Plot the loss values
 fig1 = plt.figure(1); plt.grid()
 plt.plot(range(1,epochs+1), loss_values)
 plt.xticks([1] + list(range(100, epochs+1, 100)))
 fig1.suptitle('Loss value Vs. Epoch'); plt.xlabel('Epoch'); plt.ylabel('Loss value')
-plt.axhline(y=nn01_loss, color='green', linestyle='--')
-plt.text(x=0, y=nn01_loss+0.02, s='NN01 ='+str(nn01_loss), fontsize=12, color='green')
+#plt.axhline(y=nn_loss, color='green', linestyle='--')
+#plt.text(x=0, y=nn_loss+0.02, s='NN02 ='+str(nn_loss), fontsize=12, color='green')
 plt.show()
 
-#fig1.savefig('diagrams/plots/nn01_lossvalues.jpg')
-#fig1.savefig('diagrams/plots/nn01_s1_lossvalues.jpg')
-#fig1.savefig('diagrams/plots/nn01_s2_lossvalues.jpg')
 ""
 
 # Plot the hit-rate and MRR
@@ -214,25 +223,32 @@ fig2 = plt.figure(2); plt.grid()
 plt.xticks( list(range(len(train_hr))), [eval_interval] + list(range(eval_interval*2, eval_interval * (1+len(train_hr)), eval_interval)))
 plt.plot(train_hr, label = 'train'); plt.plot(val_hr, label = 'valid'); plt.legend(loc='upper left')
 fig2.suptitle('Hit-rate Vs. Epoch'); plt.xlabel('Epoch'); plt.ylabel('Hitrate')
-# plt.plot([nn01_hr]*len(val_hr), label = 'NN02');
-plt.axhline(y=nn01_hr, color='green', linestyle='--')
-plt.text(x=0, y=nn01_hr+0.5, s='NN01 =' + str(nn01_hr), fontsize=12, color='green')
+# plt.plot([nn02_hr]*len(val_hr), label = 'NN02');
+#plt.axhline(y=nn_hr, color='green', linestyle='--')
+#plt.text(x=3, y=nn_hr+0.5, s='NN02 =' + str(nn_hr), fontsize=12, color='green')
 
-#fig2.savefig('diagrams/plots/nn01_hr.jpg')
-#fig2.savefig('diagrams/plots/nn01_s1_hr.jpg')
-#fig2.savefig('diagrams/plots/nn01_s2_hr.jpg')
 
 ""
 fig3 = plt.figure(3); plt.grid()
 plt.xticks( list(range(len(train_mrr))), [eval_interval] + list(range(eval_interval*2, eval_interval * (1+len(train_mrr)), eval_interval)))
 plt.plot(train_mrr, label = 'train'); plt.plot(val_mrr, label = 'valid');  plt.legend(loc='upper left')
 fig3.suptitle('MRR Vs. Epoch'); plt.xlabel('Epoch'); plt.ylabel('MRR')
-plt.axhline(y=nn01_mrr, color='green', linestyle='--')
-plt.text(x=0, y=nn01_mrr+0.05, s='NN01 ='+ str(nn01_mrr), fontsize=12, color='green')
+#plt.axhline(y=nn_mrr, color='green', linestyle='--')
+#plt.text(x=0, y=nn_mrr+0.05, s='NN02 ='+ str(nn_mrr), fontsize=12, color='green')
+""
 
-#fig3.savefig('diagrams/plots/nn01_mrr.jpg')
-#fig3.savefig('diagrams/plots/nn01_s1_mrr.jpg')
-#fig3.savefig('diagrams/plots/nn01_s2_mrr.jpg')
+""
+#fig1.savefig('diagrams/plots/gcn/lossvalues.jpg')
+#fig1.savefig('diagrams/plots/gcn/s1_lossvalues.jpg')
+fig1.savefig('diagrams/plots/gcn/s2_lossvalues.jpg')
+
+#fig2.savefig('diagrams/plots/gcn/hr.jpg')
+#fig2.savefig('diagrams/plots/gcn/s1_hr.jpg')
+fig2.savefig('diagrams/plots/gcn/s2_hr.jpg')
+
+#fig3.savefig('diagrams/plots/gcn/mrr.jpg')
+#fig3.savefig('diagrams/plots/gcn/s1_mrr.jpg')
+fig3.savefig('diagrams/plots/gcn/s2_mrr.jpg')
 ""
 
 print(max(train_eval)); print(max(val_eval))
@@ -273,7 +289,7 @@ fig3.suptitle('MRR Vs. Epoch'); plt.xlabel('Epoch'); plt.ylabel('MRR')
 #fig3.savefig('diagrams/two_mrr.jpg')
 
 
-#%%---------------------------------
+
 """ 01. Embedding similarity distribution """
 import time
 import random
@@ -295,7 +311,6 @@ def embplot(emb, N=2000):
   s = torch.stack(s)
   return s.tolist()
 
-#%%---------------------------------
 # Plot the embedding similarity distribution curves
 from scipy.stats import kurtosis 
 
@@ -311,7 +326,6 @@ fig4.suptitle('Embedding similarity distribution'); plt.xlabel('Embedding cosine
 #fig4.savefig('diagrams/two_embdist.jpg')
 # Kurtosis = [-1.44, -1.45, -1.51, -1.49]
 
-#%%---------------------------------
 """ 01. Embedding similarity distribution """
 import time
 import random
@@ -333,7 +347,6 @@ def embplot(emb):
   s = torch.stack(s)
   return s.tolist()
 
-#%%---------------------------------
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -357,17 +370,26 @@ plt.xlabel('Embedding cosine similarity'); plt.ylabel('Probability density of pa
 
 #fig1.savefig('diagrams/emb_dist.jpg')
 
-#%%---------------------------------
 """ Recommendations on raw vectors """
 import time
 import pipe
 import importlib; importlib.reload(pipe)
 
 t0 = time.time()
-onepipe = pipe.pipeflow(X, K=500)
+
+with open('data/two.pkl', 'rb') as f: two = pickle.load(f)
+with open('data/testpos.pkl', 'rb') as f: testpos = pickle.load(f)
+
+onepipe = pipe.pipeflow(two, K=500)
+
 res_train = onepipe.dfmanip(pos)
-res_val = onepipe.dfmanip(valpos)
+#res_val = onepipe.dfmanip(valpos)
+res_test = onepipe.dfmanip(testpos)
+
 print('Time taken:', time.time()-t0)
+
+# Hitrate = 52.0 MRR = 4.8, Hitrate = 34.1 MRR = 1.0, Hitrate = 29.6 MRR = 1.2
+#
 
 
 
@@ -412,11 +434,22 @@ print(N[1][0])
 import torch
 X[2]/torch.norm(X[2])
 
-
-#%%---------------------------------
 """a. Area under ROC """
 def auroc(true, pred):
     from sklearn.metrics import roc_auc_score
     res = (true, pred)
     print("AUROC has been computed and the value is ", res)
     return res
+
+with open('data/short_X.pkl', 'rb') as f: x = pickle.load(f)[1].to(device)
+torch.all(torch.eq(X[idx], x))
+#torch.eq(X, x)
+count = 0
+for i in range(len(x)):
+  e = x[i] == X[i]
+  if not e[0]:
+  #if not torch.all(e):
+    count += 1
+    #print(i, e[0])
+    #if count >= 100: break
+print(count)

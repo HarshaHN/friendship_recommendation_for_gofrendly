@@ -167,7 +167,7 @@ class PCN(nn.Module):
 ##%%---------------------------
 class gnet(nn.Module):
 
-    def __init__(self, graph, nodeemb, convlayers, output_size, dropout, lr, opt, select_loss, loss_margin, pos, neg, val_pos, idx):
+    def __init__(self, graph, nodeemb, convlayers, output_size, dropout, lr, opt, select_loss, loss_margin, pos, neg, train_pos, val_pos, idx):
         super(gnet, self).__init__()
         
         # Device
@@ -191,7 +191,7 @@ class gnet(nn.Module):
         # self.optimizer = getattr(torch.optim, opt)(itertools.chain(self.net.parameters(), self.embed.parameters()), lr)
 
         # Training samples
-        self.train_pos = pos
+        self.train_pos = train_pos
         self.val_pos = val_pos
         self.idx = idx
         self.pos = torch.tensor(list(zip(*pos))) #pos = tuple(zip(pos[0],pos[1]))
@@ -238,9 +238,9 @@ class gnet(nn.Module):
             print('Epoch %d | Loss: %.4f' % (i, loss.item()))
           if i%eval_interval == 0:
             print('Grad / Weights =', (list(self.net.parameters())[1].grad / list(self.net.parameters())[1]).mean().item())
-            twopipe = pipe.pipeflow(newemb, K=500)
+            twopipe = pipe.pipeflow(newemb[self.idx], K=500)
             train_eval.append(twopipe.dfmanip(self.train_pos))
-            #twopipe = pipe.pipeflow(newemb[self.idx], K=500)
+            twopipe = pipe.pipeflow(newemb[self.idx], K=500)
             val_eval.append(twopipe.dfmanip(self.val_pos))
 
           if i%emb_interval == 0:
