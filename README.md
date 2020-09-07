@@ -1,26 +1,25 @@
-# Friendship_recommendation_for_gofrendly
+# Friendship Recommendation Engine for a Social Network
+Date: Jan-July 2020 | Author: Harsha HN harshahn@kth.se | Master Thesis presented at KTH Royal Institute of Technology, Sweden.
 
-To be written...
-# intro: keywords
+'Research into recommending new friends based on current friendship patterns in a social network.'
 
-# presentation
+## Presentation
+>Google [slides] (https://docs.google.com/presentation/d/19W3jOyRsxPQ1z--0715vnXKZNrhZ6mLS7QlpQQaXAoE/edit?usp=sharing)
 
-# final report
+## Project report
+>Published [report] (03_docs_(includes_results)/02_reports/full_report_v1.pdf)
 
-# how the software is organized
+## How the software is organized
 
-a. 01_data_from_gofrendly
+- `01_data_from_gofrendly`: Describes how the data is defined for our recommendation pipeline and holds the SQL snapshots of the gofrendly server data (Raw data).
 
-b. 02_pipe
+- `02_pipeline`: Recommendation pipeline as described in [figure] (02_pipeline/data_pipeline.jpg)
 
-c. 03_docs_(includes_results)
+- `03_docs_(includes_results)`: Documents related to this project such as referred research publications, technical report.
 
-d. 99_misc
+## Usage
+1. To be mentioned...  
 
-More information:
-
-...
-
-# how-to-use
-
+## Keywords
+Deep learning, Graph Convolutional Network, Recommendation systems, PinSage.
 

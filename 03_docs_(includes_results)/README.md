@@ -1,19 +1,17 @@
-# 04_docs
+# Related documents
 
-Documents related to this project.
-
-a. 01_referred_research_paper
+- `01_referred_research_paper`
 Research paper that was referred heavily to solve the research problem. Related papers that were shortlisted for the same case is also included under 'other_referred_papers'.
 
-b. 02_reports
-Files related to full project report.
+- `02_reports`
+Files related to documentation technical report.
 
-c. 03_kth_submissions
+- `03_kth_submissions`
 Files that were submitted to KTH for evaluation.
 
-d. 04_gofrendly_docs
+- `04_gofrendly_docs`
 Files that were shared with gofrendly.
 
 More information:
-Schedule: https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing
-...
+
+Project [schedule] (https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing)

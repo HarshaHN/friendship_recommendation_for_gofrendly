@@ -83,11 +83,6 @@ class gnet(nn.Module):
       self.dropout = dropout
       self.net = PCN([ [fdim, *convlayers[0]], *convlayers[1:] ], output_size, self.dropout) 
       
-      # Define the optimizer
-      self.lr = lr
-      self.optimizer = getattr(torch.optim, opt)(self.net.parameters(), self.lr)
-      # self.optimizer = getattr(torch.optim, opt)(itertools.chain(self.net.parameters(), self.embed.parameters()), lr)
-
       # Training samples
       self.pos = torch.tensor(list(zip(*train_pos))) #pos = tuple(zip(pos[0],pos[1]))
       self.neg = torch.tensor(list(zip(*train_neg)))
@@ -106,7 +101,12 @@ class gnet(nn.Module):
     def lossfunc(self, node_emb, margin):
         return F.cosine_embedding_loss(node_emb[self.input1], node_emb[self.input2], self.target, margin)
 
-    def train(self, epochs, intervals):
+    def train(self, epochs, lr,  intervals):
+      
+      # Learning setting
+      self.lr = lr
+      self.optimizer = getattr(torch.optim, opt)(self.net.parameters(), self.lr)
+
       train_eval, val_eval, embs = [], [], []
       [loss_interval, eval_interval, emb_interval] = intervals
 
@@ -138,7 +138,7 @@ class gnet(nn.Module):
           if loss.item() < 0.01: 
             break
 
-      return [node_emb.detach(), train_eval, val_eval, self.loss_values, embs]
+      return [embs, self.loss_values, train_eval, val_eval]
 
 
 #%%
