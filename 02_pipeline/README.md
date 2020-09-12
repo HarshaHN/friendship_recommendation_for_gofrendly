@@ -7,4 +7,6 @@ Recommendation data pipeline as shown in data_pipeline.jpg. However, data collec
 
 - `03_help`: Includes helpful files such as guide to setup workbench.
 
-More information: Lines commented with #* needs to be removed when new data is considered.
+
+More information: 
+- Lines commented with #* needs to be removed when new data is considered.

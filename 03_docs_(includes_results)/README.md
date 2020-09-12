@@ -12,6 +12,6 @@ Files that were submitted to KTH for evaluation.
 - `04_gofrendly_docs`
 Files that were shared with gofrendly.
 
-More information:
 
-Project [schedule] (https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing)
+More information:
+- Project [schedule](https://docs.google.com/spreadsheets/d/1WSsdfMQgls2utF1caZfpbZ_TBjNLqueMZsm0EbN2u5Y/edit?usp=sharing).
