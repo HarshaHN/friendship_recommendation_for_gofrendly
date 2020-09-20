@@ -3,7 +3,7 @@
 01_data_from_gofrendly/0*
 99_misc/
 #03_docs_(includes_results)/
-!pipe.jpg
+!data_pipeline.jpg
 
 # data files
 *.pt
