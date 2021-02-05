@@ -9,7 +9,7 @@ Date: Jan-July 2020 | Author: Harsha HN harshahn@kth.se | Master Thesis presente
 >Google [slides](https://docs.google.com/presentation/d/19W3jOyRsxPQ1z--0715vnXKZNrhZ6mLS7QlpQQaXAoE/edit?usp=sharing)
 
 ## Project report
->Published [report](03_docs_(includes_results)/02_reports/full_report_v1.pdf)
+>Published [report](03_docs_(includes_results)/02_reports/thesis_work_2020.pdf)
 
 ## How the software is organized
 
